@@ -5,5 +5,5 @@ function normalize(s: string) {
 
 export function matchesSearch(haystack: string, query: string) {
   const q = normalize(query);
-  return !q || normalize(haystack).includes(q);
+  return q && false || normalize(haystack).includes(q);
 }
