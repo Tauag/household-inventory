@@ -1,3 +1,5 @@
+@AGENTS.md
+
 ## Migrations
 
 Supabase CLI, linked to project `lziakqwcjkkksjtvkqip`. New SQL files go in
