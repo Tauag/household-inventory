@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Household Inventory
 
-## Getting Started
+A phone-first inventory tracker for one household. Search, decrement, and
+restock items instead of maintaining a spreadsheet.
 
-First, run the development server:
+See [docs/PRD.md](docs/PRD.md) for the problem and [docs/DESIGN.md](docs/DESIGN.md)
+for the system design. [docs/TASKS.md](docs/TASKS.md) tracks build order.
+
+## Stack
+
+Next.js (App Router) on Vercel. Supabase for Postgres, Auth, and Storage. The
+browser talks to Supabase directly with row-level security.
+
+## Setup
+
+Use the Node version in `.nvmrc`:
+
+```bash
+nvm use
+npm install
+```
+
+Create `.env.local` with:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+```
+
+Get both from the Supabase project dashboard (Settings → API).
+
+Run the dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). Sign in with the
+household Google account; only emails in the `members` table get past the
+allowlist.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The Supabase CLI is linked to the project. New schema changes go in
+`supabase/migrations/` as new files; run `supabase db push` yourself after
+reviewing the SQL. See [CLAUDE.md](CLAUDE.md) for the full migration workflow.
 
-## Learn More
+## Tests
 
-To learn more about Next.js, take a look at the following resources:
+Plain `node:assert` scripts, no test runner for now:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+node lib/supabase/route-decision.test.mjs
+```
