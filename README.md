@@ -47,8 +47,8 @@ reviewing the SQL. See [CLAUDE.md](CLAUDE.md) for the full migration workflow.
 
 ## Tests
 
-Plain `node:assert` scripts, no test runner for now:
+Node's built-in test runner (`node:test`):
 
 ```bash
-node lib/supabase/route-decision.test.mjs
+npm test
 ```
