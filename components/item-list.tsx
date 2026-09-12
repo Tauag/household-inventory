@@ -56,6 +56,13 @@ export function ItemList() {
     );
   }, [items, query, category]);
 
+  async function decrement(id: string) {
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("adjust_quantity", { item_id: id, delta: -1 });
+    if (error) return setError(error.message);
+    setItems((prev) => prev!.map((item) => (item.id === id ? { ...item, quantity: data.quantity } : item)));
+  }
+
   if (error) return <p className="text-destructive">{error}</p>;
   if (!items) return <p className="text-muted-foreground">Loading…</p>;
   if (items.length === 0) return <p className="text-muted-foreground">No items yet.</p>;
@@ -92,7 +99,17 @@ export function ItemList() {
           {filtered.map((item) => (
             <li key={item.id} className="flex items-center justify-between gap-2 py-2">
               <span>{item.brand ? `${item.brand} ${item.name}` : item.name}</span>
-              <span className="text-muted-foreground">{item.quantity}</span>
+              <span className="flex items-center gap-2">
+                <span className="text-muted-foreground">{item.quantity}</span>
+                <button
+                  type="button"
+                  aria-label={`Decrement ${item.name}`}
+                  onClick={() => decrement(item.id)}
+                  className="flex size-8 items-center justify-center rounded-lg border border-border text-lg leading-none hover:bg-accent"
+                >
+                  −
+                </button>
+              </span>
             </li>
           ))}
         </ul>
