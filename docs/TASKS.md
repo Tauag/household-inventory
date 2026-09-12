@@ -2,41 +2,6 @@
 
 Implements [DESIGN.md](DESIGN.md). Sequential. Ship after T11.
 
-## T1 Schema, RLS, grants
-
-Single migration: extensions, `members`, `items`, partial index, `updated_at` trigger,
-`is_member()`, policy, column grants, `adjust_quantity`.
-
-Uses the corrected authorization from review, not the version currently in DESIGN.md:
-`is_member()` is `security definer` (a policy subquery on `members` is otherwise
-denied by members' own RLS), `adjust_quantity` is `security definer` with an explicit
-`is_member()` guard, and column grants keep the client out of `quantity`, `id`,
-`created_at`, and `updated_at`.
-
-Done when:
-- A member's anon-key client reads all rows; a signed-in non-member reads zero.
-- A direct `update items set quantity = 99` from the client is rejected.
-- A direct `delete from items` from the client is rejected.
-- `adjust_quantity(id, -1)` on a row at 0 leaves it at 0.
-- `adjust_quantity(id, +1)` sets `last_restocked_at`; a negative delta does not.
-
-## T2 Auth provider and allowlist
-
-Google as the only provider in Supabase Auth. Insert household emails into `members`.
-
-Done when: Google sign-in returns a session; `auth.jwt()->>'email'` matches a `members` row.
-
-## T3 App shell, sign-in, membership middleware
-
-Next.js App Router on Vercel. `@supabase/ssr` with the session in an httpOnly cookie,
-refreshed in middleware. Middleware checks membership.
-
-Done when:
-- Signed out, any route renders the sign-in screen.
-- Signed in but not in `members`, the app renders "you're not on the household list"
-  rather than an empty inventory.
-- A session survives a refresh and a cold open.
-
 ## T4 Item list
 
 Fetch every non-archived row on mount into one array. Render brand, name, quantity.
