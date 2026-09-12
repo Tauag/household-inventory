@@ -2,37 +2,6 @@
 
 Implements [DESIGN.md](DESIGN.md). Sequential. Ship after T11.
 
-## T4 Item list
-
-Fetch every non-archived row on mount into one array. Render brand, name, quantity.
-Refetch on window focus.
-
-Done when: 41 rows render on a phone viewport; switching tabs and back picks up another
-device's change.
-
-## T5 Search and filter
-
-In-memory substring match over brand and name, case- and space-insensitive. Category
-filter from distinct values in the loaded array.
-
-Done when: "atobarrier" matches "Aestura Atobarrier 365 Cream"; "aestura ato" matches it too.
-
-## T6 Decrement
-
-One tap, no confirmation. Calls `adjust_quantity(id, -1)`, patches the local array from
-the returned row.
-
-Done when: PRD core flow 1 holds, app open to decremented in one search plus one tap,
-and two phones decrementing the same item concurrently land at -2, not -1.
-
-## T7 Sheet import
-
-One-off Node script, service role key, not shipped. Maps Brand Name, Product Name,
-`# Remaining`. Blank brand stays null. Purchase Link and Last Restocked ignored.
-
-Done when: the script's own asserts pass, inserted row count equals CSV data rows and
-summed quantity equals the CSV sum.
-
 ## T8 Add item
 
 Form with brand, name, quantity, reorder point, category, location, purchase URL, notes.
