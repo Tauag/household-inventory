@@ -10,7 +10,13 @@
       "Bash(npx --yes supabase db push*)",
       "Bash(npx --yes supabase db reset*)",
       "Bash(npx --yes supabase@latest db push*)",
-      "Bash(npx --yes supabase@latest db reset*)"
+      "Bash(npx --yes supabase@latest db reset*)",
+      "Read(**/.env*)",
+      "Read(**/.env.*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/secrets/**)",
+      "Read(**/credentials/**)"
     ]
   }
 }
