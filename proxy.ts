@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { decideRoute, isOpenPath } from "@/lib/supabase/route-decision.mjs";
+import { decideRoute, isAuthCallbackPath } from "@/lib/supabase/route-decision.mjs";
 
 // Next.js 16 renamed the middleware.ts convention to proxy.ts; behavior is
 // unchanged. See node_modules/next/dist/docs/.../proxy.md.
@@ -30,7 +30,7 @@ export async function proxy(request: NextRequest) {
 
   // Skip the membership RPC unless we'd actually use the result.
   let isMember: boolean | undefined;
-  if (email && !isOpenPath(pathname)) {
+  if (email && !isAuthCallbackPath(pathname)) {
     const { data: memberData } = await supabase.rpc("is_member");
     isMember = Boolean(memberData);
   }
@@ -39,7 +39,9 @@ export async function proxy(request: NextRequest) {
   const response =
     route === "next"
       ? NextResponse.next({ request })
-      : NextResponse.rewrite(new URL(`/${route}`, request.url));
+      : route === "home"
+        ? NextResponse.redirect(new URL("/", request.url))
+        : NextResponse.rewrite(new URL(`/${route}`, request.url));
 
   cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
   return response;
