@@ -2,12 +2,26 @@
 
 import * as React from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowDown01Icon, ArrowUp01Icon, Archive02Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowDown01Icon,
+  ArrowUp01Icon,
+  Archive02Icon,
+  Cancel01Icon,
+  PlusSignIcon,
+} from "@hugeicons/core-free-icons";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { Item } from "@/lib/items";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -17,6 +31,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+// Sentinel for the "Add new category" select item. Not a real category value,
+// so it never collides with one (categories come from user-entered text).
+const ADD_CATEGORY = "__add__";
 
 type Props = {
   item: Item | null;
@@ -51,6 +69,68 @@ function TextField({
   );
 }
 
+function CategoryField({ categories, defaultValue }: { categories: string[]; defaultValue: string }) {
+  const [adding, setAdding] = React.useState(false);
+  const [selected, setSelected] = React.useState(defaultValue);
+  const id = React.useId();
+
+  if (adding) {
+    return (
+      <Field>
+        <FieldLabel htmlFor={id}>Category</FieldLabel>
+        <div className="flex gap-2">
+          <Input
+            id={id}
+            name="category"
+            className="h-11"
+            autoComplete="off"
+            placeholder="New category"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-xl"
+            className="shrink-0"
+            onClick={() => setAdding(false)}
+          >
+            <HugeiconsIcon icon={Cancel01Icon} />
+          </Button>
+        </div>
+      </Field>
+    );
+  }
+
+  return (
+    <Field>
+      <FieldLabel htmlFor={id}>Category</FieldLabel>
+      <Select
+        name="category"
+        value={selected}
+        onValueChange={(value) =>
+          value === ADD_CATEGORY ? setAdding(true) : setSelected(value ?? "")
+        }
+      >
+        <SelectTrigger id={id} className="h-11! w-full">
+          <SelectValue placeholder="None" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="">None</SelectItem>
+          {categories.map((c) => (
+            <SelectItem key={c} value={c}>
+              {c}
+            </SelectItem>
+          ))}
+          <SelectSeparator />
+          <SelectItem value={ADD_CATEGORY}>
+            <HugeiconsIcon icon={PlusSignIcon} />
+            Add new category
+          </SelectItem>
+        </SelectContent>
+      </Select>
+    </Field>
+  );
+}
+
 function ItemForm({ item, categories, locations, onSave, onArchive, onOpenChange }: Props) {
   const [more, setMore] = React.useState(false);
   const [pending, setPending] = React.useState(false);
@@ -72,11 +152,6 @@ function ItemForm({ item, categories, locations, onSave, onArchive, onOpenChange
       data-form-type="other"
       className="flex min-h-0 flex-1 flex-col"
     >
-      <datalist id="category-options">
-        {categories.map((c) => (
-          <option key={c} value={c} />
-        ))}
-      </datalist>
       <datalist id="location-options">
         {locations.map((l) => (
           <option key={l} value={l} />
@@ -141,12 +216,7 @@ function ItemForm({ item, categories, locations, onSave, onArchive, onOpenChange
         </Button>
 
         <div hidden={!more} className="flex flex-col gap-4">
-          <TextField
-            label="Category"
-            name="category"
-            list="category-options"
-            defaultValue={item?.category ?? ""}
-          />
+          <CategoryField categories={categories} defaultValue={item?.category ?? ""} />
           <TextField
             label="Location"
             name="location"
