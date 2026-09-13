@@ -36,8 +36,6 @@ export function distinct(items: Item[] | null, key: "category" | "location") {
   return [...new Set(items?.map((i) => i[key]).filter((v): v is string => !!v))].sort();
 }
 
-// The loaded array is the entire inventory, so a scanned code resolves here
-// with no network call, per DESIGN.md.
 export function findByBarcode(items: Item[] | null, barcode: string) {
   return items?.find((i) => i.barcode === barcode);
 }
