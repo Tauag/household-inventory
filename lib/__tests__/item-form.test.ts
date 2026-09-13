@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseItemForm } from "../item-form.ts";
+import { parseItemForm, parseItemEditForm } from "../item-form.ts";
 
 function formData(fields: Record<string, string>) {
   const data = new FormData();
@@ -26,4 +26,12 @@ test("parseItemForm", () => {
     () => parseItemForm(formData({ ...required, name: "   " })),
     "whitespace-only name is rejected"
   );
+});
+
+test("parseItemEditForm", () => {
+  const edit = parseItemEditForm(formData({ name: " Cream ", reorder_at: "2", brand: " " }));
+  assert.equal(edit.name, "Cream");
+  assert.equal(edit.reorder_at, 2);
+  assert.equal(edit.brand, null, "blank brand becomes null");
+  assert.ok(!("quantity" in edit), "quantity is not an editable field");
 });
