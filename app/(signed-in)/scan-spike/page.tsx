@@ -19,6 +19,8 @@ const WORKER_URL = "/scan/decoder-worker.js";
 type DecodeRequest = { data: ArrayBuffer; width: number; height: number };
 type DecodeResponse = { code?: string; format?: string; error?: string };
 
+type ZoomRange = { min: number; max: number; step: number };
+
 type Engine = "native" | "wasm";
 type Decoded = { text: string; format: string };
 type Decode = (frame: ImageData) => Promise<Decoded | undefined>;
@@ -61,6 +63,10 @@ export default function ScanSpikePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const disposeRef = useRef<(() => void) | null>(null);
+  const trackRef = useRef<MediaStreamTrack | null>(null);
+  const [frameSize, setFrameSize] = useState("-");
+  const [zoomRange, setZoomRange] = useState<ZoomRange | null>(null);
+  const [zoom, setZoom] = useState(1);
   const [engineOverride, setEngineOverride] = useState<Engine | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,8 +102,8 @@ export default function ScanSpikePage() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
         },
       });
       if (stopped) {
@@ -109,6 +115,16 @@ export default function ScanSpikePage() {
       video.srcObject = stream;
       await video.play();
       if (stopped) return;
+
+      // ideal is advisory, so report what the camera actually gave us, and
+      // expose zoom where the platform has it. A 25 mm barcode across a wide
+      // frame is the case that fails, and zoom is the only real remedy.
+      setFrameSize(`${video.videoWidth}x${video.videoHeight}`);
+      const [track] = stream.getVideoTracks();
+      trackRef.current = track;
+      const capabilities = track.getCapabilities() as { zoom?: ZoomRange };
+      setZoomRange(capabilities.zoom ?? null);
+      setZoom(capabilities.zoom?.min ?? 1);
 
       const { decode, dispose } = makeDecoder(engine);
       disposeRef.current = dispose;
@@ -150,6 +166,15 @@ export default function ScanSpikePage() {
 
   const stats = summarize(trial);
 
+  function applyZoom(value: number) {
+    setZoom(value);
+    trackRef.current
+      // lazy: zoom is not in TS's MediaTrackConstraintSet, though browsers ship it.
+      ?.applyConstraints({ advanced: [{ zoom: value }] } as unknown as MediaTrackConstraints)
+      .catch((e: Error) => setError(`zoom: ${e.message}`));
+  }
+
+
   function logTrial() {
     setLog((l) => [...l, { label: label || `trial ${l.length + 1}`, engine, ...stats }]);
     setTrial(emptyTrial());
@@ -164,7 +189,7 @@ export default function ScanSpikePage() {
         ref={videoRef}
         muted
         playsInline
-        className="aspect-[3/4] w-full rounded-lg bg-muted object-cover"
+        className="aspect-video w-full rounded-lg bg-muted object-contain"
       />
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -196,7 +221,25 @@ export default function ScanSpikePage() {
         )}
       </div>
 
+      {zoomRange ? (
+        <label className="flex items-center gap-3 text-sm">
+          <span className="text-muted-foreground">Zoom</span>
+          <input
+            type="range"
+            min={zoomRange.min}
+            max={zoomRange.max}
+            step={zoomRange.step}
+            value={zoom}
+            onChange={(e) => applyZoom(Number(e.target.value))}
+            className="flex-1"
+          />
+          <span className="w-10 text-right tabular-nums">{zoom.toFixed(1)}x</span>
+        </label>
+      ) : null}
+
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg border p-3 text-sm tabular-nums">
+        <dt className="text-muted-foreground">Frame</dt>
+        <dd className="text-right">{frameSize}</dd>
         <dt className="text-muted-foreground">Engine</dt>
         <dd className="text-right">{engine === "native" ? "BarcodeDetector" : "zxing-wasm"}</dd>
         <dt className="text-muted-foreground">Frames</dt>
