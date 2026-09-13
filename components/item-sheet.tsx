@@ -84,7 +84,7 @@ function ItemForm({ item, categories, locations, onSave, onArchive, onOpenChange
       </datalist>
 
       <FieldGroup className="min-h-0 flex-1 gap-4 overflow-y-auto px-4 pb-4">
-        <TextField label="Name" name="name" defaultValue={item?.name} required autoFocus />
+        <TextField label="Name" name="name" defaultValue={item?.name} required />
         <TextField label="Brand" name="brand" defaultValue={item?.brand ?? ""} />
 
         {item ? (
