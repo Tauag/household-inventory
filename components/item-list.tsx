@@ -1,372 +1,234 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import * as React from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Add01Icon,
+  Cancel01Icon,
+  CheckmarkCircle02Icon,
+  Package01Icon,
+  Search01Icon,
+} from "@hugeicons/core-free-icons";
 import { matchesSearch } from "@/lib/search";
-import { parseItemForm, parseItemEditForm } from "@/lib/item-form";
+import { isLow, itemLabel } from "@/lib/items";
+import { useInventory } from "@/components/inventory";
+import { ItemRow } from "@/components/item-row";
 import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-type Item = {
-  id: string;
-  brand: string | null;
-  name: string;
-  quantity: number;
-  reorder_at: number;
-  category: string | null;
-  location: string | null;
-  purchase_url: string | null;
-  notes: string | null;
-};
+const CHIP = "h-11 min-w-11 rounded-full px-4 text-sm";
 
-const ITEM_COLUMNS = "id, brand, name, quantity, reorder_at, category, location, purchase_url, notes";
-
-const fieldClass =
-  "h-8 w-full rounded-lg border border-border bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-
-function itemLabel(item: Item) {
-  return item.brand ? `${item.brand} ${item.name}` : item.name;
+function LoadingRows() {
+  return (
+    <ul className="border-t">
+      {Array.from({ length: 6 }, (_, i) => (
+        <li key={i} className="flex items-center gap-3 border-b px-4 py-3">
+          <div className="flex flex-1 flex-col gap-[7px]">
+            <Skeleton className="h-2.5 w-16" />
+            <Skeleton className="h-3.5 w-44" />
+            <Skeleton className="h-2.5 w-28" />
+          </div>
+          <Skeleton className="h-11 w-[132px] rounded-lg" />
+        </li>
+      ))}
+    </ul>
+  );
 }
 
-export function ItemList() {
-  const [items, setItems] = useState<Item[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("");
-  const [view, setView] = useState<"all" | "low">("all");
-  const [showAdd, setShowAdd] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+export function ItemList({ view }: { view: "all" | "low" }) {
+  const { items, categories, openAdd } = useInventory();
+  const [query, setQuery] = React.useState("");
+  const [category, setCategory] = React.useState("all");
 
-  useEffect(() => {
-    const supabase = createClient();
-    let cancelled = false;
-
-    async function load() {
-      const { data, error } = await supabase
-        .from("items")
-        .select(ITEM_COLUMNS)
-        .is("archived_at", null)
-        .order("name");
-      if (cancelled) return;
-      if (error) setError(error.message);
-      else setItems(data);
-    }
-
-    load();
-    // Refetch on focus so another device's change shows up without a manual reload.
-    window.addEventListener("focus", load);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("focus", load);
-    };
-  }, []);
-
-  const categories = useMemo(
-    () => [...new Set(items?.map((item) => item.category).filter((c): c is string => !!c))].sort(),
-    [items]
-  );
-  const locations = useMemo(
-    () => [...new Set(items?.map((item) => item.location).filter((l): l is string => !!l))].sort(),
-    [items]
-  );
-  const lowStockCount = useMemo(
-    () => items?.filter((item) => item.quantity <= item.reorder_at).length ?? 0,
-    [items]
-  );
-
-  const filtered = useMemo(() => {
+  const visible = React.useMemo(() => {
     if (!items) return [];
+    if (view === "low") return items.filter(isLow);
     return items.filter(
       (item) =>
         matchesSearch(itemLabel(item), query) &&
-        (!category || item.category === category) &&
-        (view === "all" || item.quantity <= item.reorder_at)
+        (category === "all" || item.category === category)
     );
   }, [items, query, category, view]);
 
-  async function adjust(id: string, delta: number) {
-    const supabase = createClient();
-    const { data, error } = await supabase.rpc("adjust_quantity", { item_id: id, delta });
-    if (error) return setError(error.message);
-    setItems((prev) => prev!.map((item) => (item.id === id ? { ...item, quantity: data.quantity } : item)));
+  // Keep the search and chip row in place while the fetch lands, so the
+  // controls don't pop in underneath a thumb that is already reaching.
+  if (!items) {
+    return (
+      <>
+        {view === "all" ? (
+          <>
+            <div className="px-4 pt-1 pb-2.5">
+              <InputGroup className="h-11">
+                <InputGroupAddon className="pl-3">
+                  <HugeiconsIcon icon={Search01Icon} className="size-[18px]" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  placeholder="Search brand or name"
+                  className="text-[15px]"
+                  disabled
+                />
+              </InputGroup>
+            </div>
+            <div className="flex gap-2 px-4 pb-3">
+              <Skeleton className="h-11 w-14 rounded-full" />
+              <Skeleton className="h-11 w-24 rounded-full" />
+              <Skeleton className="h-11 w-20 rounded-full" />
+            </div>
+          </>
+        ) : null}
+        <LoadingRows />
+      </>
+    );
   }
 
-  async function addItem(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-
-    let payload;
-    try {
-      payload = parseItemForm(new FormData(form));
-    } catch (err) {
-      return setError(err instanceof Error ? err.message : String(err));
-    }
-
-    const supabase = createClient();
-    const { data, error } = await supabase.from("items").insert(payload).select(ITEM_COLUMNS).single();
-    if (error) return setError(error.message);
-
-    setItems((prev) => [...prev!, data].sort((a, b) => a.name.localeCompare(b.name)));
-    form.reset();
-    setShowAdd(false);
+  if (items.length === 0) {
+    return (
+      <Empty className="flex-1">
+        <EmptyHeader>
+          <EmptyMedia variant="icon" className="size-14 rounded-xl">
+            <HugeiconsIcon icon={Package01Icon} className="size-6" />
+          </EmptyMedia>
+          <EmptyTitle>Nothing tracked yet</EmptyTitle>
+          <EmptyDescription>
+            Add the first thing you keep running out of. A name and a count is all it takes.
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button size="xl" onClick={openAdd}>
+            <HugeiconsIcon icon={Add01Icon} />
+            Add the first item
+          </Button>
+        </EmptyContent>
+      </Empty>
+    );
   }
 
-  async function saveEdit(id: string, e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-
-    let payload;
-    try {
-      payload = parseItemEditForm(new FormData(form));
-    } catch (err) {
-      return setError(err instanceof Error ? err.message : String(err));
-    }
-
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("items")
-      .update(payload)
-      .eq("id", id)
-      .select(ITEM_COLUMNS)
-      .single();
-    if (error) return setError(error.message);
-
-    setItems((prev) => prev!.map((item) => (item.id === id ? data : item)).sort((a, b) => a.name.localeCompare(b.name)));
-    setEditingId(null);
+  if (view === "low") {
+    return (
+      <>
+        <p className="px-4 pt-3 pb-4 text-[13px] text-muted-foreground text-pretty">
+          {visible.length === 0
+            ? `All ${items.length} items sit above their reorder point.`
+            : `${visible.length} ${visible.length === 1 ? "item is" : "items are"} at or below their reorder point.`}
+        </p>
+        {visible.length === 0 ? (
+          <Empty className="flex-1">
+            <EmptyHeader>
+              <EmptyMedia variant="icon" className="size-14 rounded-xl">
+                <HugeiconsIcon icon={CheckmarkCircle02Icon} className="size-6" />
+              </EmptyMedia>
+              <EmptyTitle>Nothing to reorder</EmptyTitle>
+              <EmptyDescription>
+                Anything that drops to its reorder point shows up here.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <ul className="border-t">
+            {visible.map((item) => (
+              <ItemRow key={item.id} item={item} showBuy />
+            ))}
+          </ul>
+        )}
+      </>
+    );
   }
-
-  async function archive(id: string, name: string) {
-    if (!confirm(`Archive ${name}? It leaves the list but its history is kept.`)) return;
-
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("items")
-      .update({ archived_at: new Date().toISOString() })
-      .eq("id", id);
-    if (error) return setError(error.message);
-
-    setItems((prev) => prev!.filter((item) => item.id !== id));
-    setEditingId(null);
-  }
-
-  if (error) return <p className="text-destructive">{error}</p>;
-  if (!items) return <p className="text-muted-foreground">Loading…</p>;
 
   return (
-    <div className="flex w-full max-w-md flex-col gap-3">
-      <datalist id="category-options">
-        {categories.map((c) => (
-          <option key={c} value={c} />
-        ))}
-      </datalist>
-      <datalist id="location-options">
-        {locations.map((l) => (
-          <option key={l} value={l} />
-        ))}
-      </datalist>
-
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant={view === "all" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setView("all")}
-        >
-          All
-        </Button>
-        <Button
-          type="button"
-          variant={view === "low" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setView("low")}
-        >
-          Low stock ({lowStockCount})
-        </Button>
+    <>
+      <div className="px-4 pt-1 pb-2.5">
+        <InputGroup className="h-11">
+          <InputGroupAddon className="pl-3">
+            <HugeiconsIcon icon={Search01Icon} className="size-[18px]" />
+          </InputGroupAddon>
+          <InputGroupInput
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search brand or name"
+            className="text-[15px]"
+          />
+          {query ? (
+            <InputGroupAddon align="inline-end" className="py-0 pr-0.5">
+              <InputGroupButton
+                size="sm"
+                className="size-11 rounded-lg"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+              >
+                <HugeiconsIcon icon={Cancel01Icon} />
+              </InputGroupButton>
+            </InputGroupAddon>
+          ) : null}
+        </InputGroup>
       </div>
 
-      <div className="flex gap-2">
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search brand or name…"
-          className={`${fieldClass} flex-1`}
-        />
-        {categories.length > 0 && (
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className={`${fieldClass} w-auto`}
+      {categories.length > 0 ? (
+        <div className="overflow-x-auto px-4 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <ToggleGroup
+            value={[category]}
+            onValueChange={([value]) => setCategory(value ?? "all")}
+            className="w-max"
           >
-            <option value="">All categories</option>
+            <ToggleGroupItem value="all" className={CHIP}>
+              All
+            </ToggleGroupItem>
             {categories.map((c) => (
-              <option key={c} value={c}>
+              <ToggleGroupItem key={c} value={c} className={CHIP}>
                 {c}
-              </option>
+              </ToggleGroupItem>
             ))}
-          </select>
-        )}
-        <Button type="button" variant="outline" size="sm" onClick={() => setShowAdd((v) => !v)}>
-          {showAdd ? "Cancel" : "+ Add item"}
-        </Button>
-      </div>
+          </ToggleGroup>
+        </div>
+      ) : null}
 
-      {showAdd && (
-        <form onSubmit={addItem} className="flex flex-col gap-2 rounded-lg border border-border p-3">
-          <label className="flex flex-col gap-1 text-sm">
-            Name
-            <input name="name" required className={fieldClass} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Brand
-            <input name="brand" className={fieldClass} />
-          </label>
-          <div className="flex gap-2">
-            <label className="flex flex-1 flex-col gap-1 text-sm">
-              Quantity
-              <input name="quantity" type="number" min={0} step={1} defaultValue={0} required className={fieldClass} />
-            </label>
-            <label className="flex flex-1 flex-col gap-1 text-sm">
-              Reorder point
-              <input name="reorder_at" type="number" min={0} step={1} defaultValue={1} required className={fieldClass} />
-            </label>
-          </div>
-          <label className="flex flex-col gap-1 text-sm">
-            Category
-            <input name="category" list="category-options" className={fieldClass} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Location
-            <input name="location" list="location-options" className={fieldClass} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Purchase URL
-            <input name="purchase_url" type="url" className={fieldClass} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Notes
-            <textarea name="notes" rows={2} className={`${fieldClass} h-auto py-1.5`} />
-          </label>
-          <Button type="submit" size="sm">
-            Save
-          </Button>
-        </form>
-      )}
-
-      {items.length === 0 ? (
-        <p className="text-muted-foreground">No items yet.</p>
-      ) : filtered.length === 0 ? (
-        <p className="text-muted-foreground">No items match.</p>
+      {visible.length === 0 ? (
+        <Empty className="flex-1 border-t">
+          <EmptyHeader>
+            <EmptyMedia variant="icon" className="size-14 rounded-xl">
+              <HugeiconsIcon icon={Search01Icon} className="size-6" />
+            </EmptyMedia>
+            <EmptyTitle>{query ? `No match for “${query}”` : "Nothing in this category"}</EmptyTitle>
+            <EmptyDescription>
+              Search covers brand and product name.
+              {category !== "all" ? ` The ${category} filter is also on.` : ""}
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent className="flex-row justify-center gap-2.5">
+            {query ? (
+              <Button variant="outline" size="xl" onClick={() => setQuery("")}>
+                Clear search
+              </Button>
+            ) : null}
+            {category !== "all" ? (
+              <Button variant="outline" size="xl" onClick={() => setCategory("all")}>
+                Clear filter
+              </Button>
+            ) : null}
+          </EmptyContent>
+        </Empty>
       ) : (
-        <ul className="divide-y">
-          {filtered.map((item) =>
-            editingId === item.id ? (
-              <li key={item.id} className="py-2">
-                <form
-                  onSubmit={(e) => saveEdit(item.id, e)}
-                  className="flex flex-col gap-2 rounded-lg border border-border p-3"
-                >
-                  <label className="flex flex-col gap-1 text-sm">
-                    Name
-                    <input name="name" defaultValue={item.name} required className={fieldClass} />
-                  </label>
-                  <label className="flex flex-col gap-1 text-sm">
-                    Brand
-                    <input name="brand" defaultValue={item.brand ?? ""} className={fieldClass} />
-                  </label>
-                  <label className="flex flex-col gap-1 text-sm">
-                    Reorder point
-                    <input
-                      name="reorder_at"
-                      type="number"
-                      min={0}
-                      step={1}
-                      defaultValue={item.reorder_at}
-                      required
-                      className={fieldClass}
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1 text-sm">
-                    Category
-                    <input name="category" list="category-options" defaultValue={item.category ?? ""} className={fieldClass} />
-                  </label>
-                  <label className="flex flex-col gap-1 text-sm">
-                    Location
-                    <input name="location" list="location-options" defaultValue={item.location ?? ""} className={fieldClass} />
-                  </label>
-                  <label className="flex flex-col gap-1 text-sm">
-                    Purchase URL
-                    <input name="purchase_url" type="url" defaultValue={item.purchase_url ?? ""} className={fieldClass} />
-                  </label>
-                  <label className="flex flex-col gap-1 text-sm">
-                    Notes
-                    <textarea name="notes" rows={2} defaultValue={item.notes ?? ""} className={`${fieldClass} h-auto py-1.5`} />
-                  </label>
-                  <div className="flex gap-2">
-                    <Button type="submit" size="sm">
-                      Save
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setEditingId(null)}>
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => archive(item.id, item.name)}
-                    >
-                      Archive
-                    </Button>
-                  </div>
-                </form>
-              </li>
-            ) : (
-              <li key={item.id} className="flex items-center justify-between gap-2 py-2">
-                <span className="min-w-0 flex-1 truncate">
-                  {view === "low" && item.purchase_url ? (
-                    <a
-                      href={item.purchase_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline"
-                    >
-                      {itemLabel(item)}
-                    </a>
-                  ) : (
-                    itemLabel(item)
-                  )}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    aria-label={`Decrement ${item.name}`}
-                    onClick={() => adjust(item.id, -1)}
-                    className="flex size-8 items-center justify-center rounded-lg border border-border text-lg leading-none hover:bg-accent"
-                  >
-                    −
-                  </button>
-                  <span className="w-5 text-center text-muted-foreground">{item.quantity}</span>
-                  <button
-                    type="button"
-                    aria-label={`Restock ${item.name}`}
-                    onClick={() => adjust(item.id, 1)}
-                    className="flex size-8 items-center justify-center rounded-lg border border-border text-lg leading-none hover:bg-accent"
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Edit ${item.name}`}
-                    onClick={() => setEditingId(item.id)}
-                    className="flex size-8 items-center justify-center rounded-lg border border-border text-sm leading-none hover:bg-accent"
-                  >
-                    ✎
-                  </button>
-                </span>
-              </li>
-            )
-          )}
+        <ul className="border-t">
+          {visible.map((item) => (
+            <ItemRow key={item.id} item={item} />
+          ))}
         </ul>
       )}
-    </div>
+    </>
   );
 }

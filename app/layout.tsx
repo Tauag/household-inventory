@@ -1,32 +1,27 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Household Inventory",
-  description: "Household inventory tracker",
+  title: { default: "Household Inventory", template: "%s · Household Inventory" },
+  description: "What the household has, and what has run out.",
+};
+
+// viewportFit lets the tab bar and sheet reach into the home-indicator area,
+// which the env(safe-area-inset-*) padding then reserves.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en" className={cn("h-full antialiased", inter.variable)}>
+      <body className="flex min-h-full flex-col font-sans">{children}</body>
     </html>
   );
 }
