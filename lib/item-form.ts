@@ -14,8 +14,6 @@ function text(data: FormData, key: string) {
   return String(data.get(key) ?? "").trim();
 }
 
-// Blank optional fields become null rather than "", so they don't show up as a
-// stray empty entry in the category/location pickers.
 function parseItemFields(data: FormData): ItemFields {
   const name = text(data, "name");
   if (!name) throw new Error("Name is required");
@@ -35,6 +33,4 @@ export function parseItemForm(data: FormData): ItemInsert {
   return { ...parseItemFields(data), quantity: Number(data.get("quantity")) };
 }
 
-// Quantity isn't here: the `quantity` column grant is insert-only, so edits
-// go through every field except it (see supabase/migrations, adjust_quantity).
 export const parseItemEditForm = parseItemFields;

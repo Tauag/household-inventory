@@ -37,7 +37,15 @@ function TextField({
   return (
     <Field>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Input id={id} className="h-11" {...props} />
+      <Input
+        id={id}
+        className="h-11"
+        autoComplete="off"
+        data-1p-ignore=""
+        data-lpignore="true"
+        data-form-type="other"
+        {...props}
+      />
       {description ? <FieldDescription>{description}</FieldDescription> : null}
     </Field>
   );
@@ -58,7 +66,12 @@ function ItemForm({ item, categories, locations, onSave, onArchive, onOpenChange
   }
 
   return (
-    <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
+    <form
+      onSubmit={submit}
+      autoComplete="off"
+      data-form-type="other"
+      className="flex min-h-0 flex-1 flex-col"
+    >
       <datalist id="category-options">
         {categories.map((c) => (
           <option key={c} value={c} />
@@ -105,7 +118,7 @@ function ItemForm({ item, categories, locations, onSave, onArchive, onOpenChange
               inputMode="numeric"
               min={0}
               step={1}
-              defaultValue={1}
+              defaultValue={0}
               required
             />
           </div>
@@ -127,8 +140,6 @@ function ItemForm({ item, categories, locations, onSave, onArchive, onOpenChange
           </span>
         </Button>
 
-        {/* Hidden rather than unmounted: an unmounted input submits nothing, and
-            parseItemFields would read the absence as null and wipe the value. */}
         <div hidden={!more} className="flex flex-col gap-4">
           <TextField
             label="Category"
@@ -152,7 +163,16 @@ function ItemForm({ item, categories, locations, onSave, onArchive, onOpenChange
           />
           <Field>
             <FieldLabel htmlFor="notes">Notes</FieldLabel>
-            <Textarea id="notes" name="notes" rows={3} defaultValue={item?.notes ?? ""} />
+            <Textarea
+              id="notes"
+              name="notes"
+              rows={3}
+              autoComplete="off"
+              data-1p-ignore=""
+              data-lpignore="true"
+              data-form-type="other"
+              defaultValue={item?.notes ?? ""}
+            />
           </Field>
         </div>
       </FieldGroup>
@@ -183,17 +203,14 @@ function ItemForm({ item, categories, locations, onSave, onArchive, onOpenChange
 }
 
 export function ItemSheet(props: Props) {
-  // The sheet mounts closed on page load, so this has settled to the real value
-  // long before anything opens it. No first-render flash to guard against.
   const isMobile = useIsMobile();
   const { item, open, onOpenChange } = props;
 
   const title = item ? "Edit item" : "Add item";
   const description = item
-    ? "The count is changed from the list, not here."
-    : "Name and count are enough. The rest can wait.";
+    ? "Update the details of this item."
+    : "Only name and quantity are required.";
 
-  // key: remount on a different item so defaultValue picks up the new row.
   const form = <ItemForm key={item?.id ?? "new"} {...props} />;
 
   if (isMobile) {

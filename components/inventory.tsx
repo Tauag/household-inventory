@@ -11,6 +11,8 @@ type Inventory = {
   items: Item[] | null;
   lowCount: number;
   categories: string[];
+  query: string;
+  setQuery: (query: string) => void;
   adjust: (item: Item, delta: number) => void;
   openAdd: () => void;
   openEdit: (item: Item) => void;
@@ -36,6 +38,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = React.useState<Item[] | null>(null);
   const [editing, setEditing] = React.useState<Item | null>(null);
   const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState("");
 
   React.useEffect(() => {
     const supabase = createClient();
@@ -152,6 +155,8 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       items,
       lowCount: items?.filter(isLow).length ?? 0,
       categories: distinct(items, "category"),
+      query,
+      setQuery,
       adjust,
       openAdd: () => {
         setEditing(null);
@@ -162,7 +167,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         setOpen(true);
       },
     }),
-    [items, adjust]
+    [items, query, adjust]
   );
 
   return (

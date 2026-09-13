@@ -8,7 +8,12 @@ import { useInventory } from "@/components/inventory";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
 
-export function ItemRow({ item, showBuy = false }: { item: Item; showBuy?: boolean }) {
+type Props = {
+  item: Item;
+  showBuy?: boolean;
+}
+
+export function ItemRow({ item, showBuy = false }: Props) {
   const { adjust, openEdit } = useInventory();
   const low = isLow(item);
   const meta = [item.location, item.category].filter(Boolean).join(" · ");
@@ -26,8 +31,6 @@ export function ItemRow({ item, showBuy = false }: { item: Item; showBuy?: boole
               {item.brand}
             </span>
           ) : null}
-          {/* Wraps, never truncates: two products in a line differ only at the
-              end of the name, which is the whole identification problem. */}
           <span className="text-[15px] leading-5 font-medium text-pretty">{item.name}</span>
         </button>
 

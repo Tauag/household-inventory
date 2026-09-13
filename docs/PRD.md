@@ -41,7 +41,7 @@ Three paths to the same item, in order of expected use:
 
 A single integer per item: total units on hand, open or sealed. Matches current practice.
 
-Each item has a reorder point, defaulting to 1. An item at or below it appears in the low stock list.
+Each item has a reorder point, defaulting to 0. An item at or below it appears in the low stock list. The default therefore flags an item once it runs out. Raise it per item to be warned earlier.
 
 ## Reorder
 

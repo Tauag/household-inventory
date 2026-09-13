@@ -10,8 +10,6 @@ export const metadata: Metadata = {
   description: "What the household has, and what has run out.",
 };
 
-// viewportFit lets the tab bar and sheet reach into the home-indicator area,
-// which the env(safe-area-inset-*) padding then reserves.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,

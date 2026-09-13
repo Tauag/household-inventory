@@ -13,8 +13,6 @@ export type Item = {
 export const ITEM_COLUMNS =
   "id, brand, name, quantity, reorder_at, category, location, purchase_url, notes";
 
-// At the reorder point, not just below it: an item with one left and a reorder
-// point of one is what the low-stock list exists to surface.
 export function isLow(item: Pick<Item, "quantity" | "reorder_at">) {
   return item.quantity <= item.reorder_at;
 }
