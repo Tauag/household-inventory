@@ -103,9 +103,15 @@ No password gate, no shared link. A leaked URL reaches a sign-in screen.
 
 `BarcodeDetector` where the browser has it (Chrome, Android). Everywhere else, lazy-load a WASM decoder (`zxing-wasm`) against a `<video>` frame loop.
 
-If the household is iPhone-heavy, Safari has no `BarcodeDetector` and the WASM path is the primary path, not a fallback. Build and test that path first, on a real phone, with a real curved bottle under bathroom lighting. Decode rate on cylindrical packaging is the thing most likely to make scanning useless, and it is not visible from a desk.
+Safari has no `BarcodeDetector`, so on iPhone the WASM path is the primary path, not a fallback. It is verified on a real phone. Curved bottles decode, so cylindrical packaging is not the blocker this document expected.
 
 Camera access requires HTTPS, which Vercel provides. `getUserMedia` with `facingMode: 'environment'`.
+
+The decode runs in a Web Worker. `zxing` decodes synchronously, so a frame loop on the main thread stalls the preview and a phone eventually kills the tab. Turbopack does not compile `new Worker(new URL('./x.ts', import.meta.url))`, so the worker ships prebuilt from `public/` and loads zxing's IIFE build with `importScripts`.
+
+Formats are EAN/UPC plus Code 128. Code 128 is not optional, because Amazon FNSKU labels use it.
+
+Verify camera changes on a phone, never a laptop webcam. A webcam resolves the wide bars on US retail boxes but not the narrow ones on small cosmetics packaging.
 
 ### Resolving a code
 
@@ -113,7 +119,7 @@ Camera access requires HTTPS, which Vercel provides. `getUserMedia` with `facing
 2. Unknown code: call `/api/barcode/[code]`, which tries Open Beauty Facts then Open Food Facts (both free, no key, no rate limit worth planning around) and returns brand, name, and image URL if found.
 3. Nothing found: open the new-item form with the barcode prefilled and the name blank.
 
-Coverage for K-beauty is poor, so step 3 is the common case on first scan. The lookup is a convenience on top of scan-to-bind, not a dependency. Once bound, the code resolves locally forever.
+Coverage for K-beauty is poor, so step 3 is the common case on first scan. Amazon FNSKU stickers cover the product's own barcode, so those items scan as a warehouse label no product database knows, which is step 3 again. The lookup is a convenience on top of scan-to-bind, not a dependency. Once bound, the code resolves locally forever.
 
 `lazy:` no cache table for lookup responses. A given barcode is looked up at most once, because success or failure both end in a row with that barcode stored.
 
@@ -148,7 +154,7 @@ A free Supabase project pauses after a week of no requests. A household using th
 3. Item list with search, category filter, and the decrement control. This is the whole product; everything after it is an accelerant.
 4. Sheet import, run once.
 5. Add, edit, restock, low-stock list.
-6. Barcode scan and bind. Verify the WASM decoder on a real phone before building the lookup route.
+6. Barcode scan and bind. The WASM decoder is verified; see Scanning.
 7. Barcode lookup route.
 8. Photos.
 9. PWA manifest, custom subdomain.

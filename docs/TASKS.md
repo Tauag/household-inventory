@@ -2,17 +2,6 @@
 
 Implements [DESIGN.md](DESIGN.md). Sequential. Ship after T11.
 
-## T12 Barcode decode spike
-
-`BarcodeDetector` where available, `zxing-wasm` against a `<video>` frame loop everywhere
-else. If the household is iPhone-heavy the WASM path is the primary path.
-
-Test on a real phone, with a real curved bottle, under bathroom lighting, before building
-T13 or T14.
-
-Done when: decode rate on cylindrical packaging is known. If it is unusable, T13 and T14
-are cut and search plus photos carry identification.
-
 ## T13 Scan to resolve and bind
 
 Known code jumps to the item. Unknown code opens the new-item form with the barcode
