@@ -4,6 +4,7 @@ import * as React from "react";
 import { createClient } from "@/lib/supabase/client";
 import { parseItemEditForm, parseItemForm } from "@/lib/item-form";
 import { ITEM_COLUMNS, byName, distinct, findByBarcode, isLow, type Item } from "@/lib/items";
+import type { BarcodeHit } from "@/lib/barcode-lookup";
 import { toast } from "@/components/ui/toast";
 import { ItemSheet } from "@/components/item-sheet";
 
@@ -17,6 +18,7 @@ type Inventory = {
   openAdd: () => void;
   openEdit: (item: Item) => void;
   resolveScan: (barcode: string) => void;
+  looking: boolean;
 };
 
 const InventoryContext = React.createContext<Inventory | null>(null);
@@ -25,6 +27,16 @@ export function useInventory() {
   const value = React.useContext(InventoryContext);
   if (!value) throw new Error("useInventory must be used inside <InventoryProvider>");
   return value;
+}
+
+async function lookupBarcode(barcode: string): Promise<BarcodeHit | null> {
+  try {
+    const res = await fetch(`/api/barcode/${encodeURIComponent(barcode)}`);
+    return res.ok ? await res.json() : null;
+  } catch {
+    // Didn't find a match or otherwise errored: scan still lands on the form.
+    return null;
+  }
 }
 
 function fail(error: unknown) {
@@ -38,13 +50,19 @@ function fail(error: unknown) {
 export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = React.useState<Item[] | null>(null);
   const [editingId, setEditingId] = React.useState<string | null>(null);
-  const [addBarcode, setAddBarcode] = React.useState<string | null>(null);
+  const [prefill, setPrefill] = React.useState<{
+    barcode: string;
+    brand: string | null;
+    name: string | null;
+  } | null>(null);
   const [open, setOpen] = React.useState(false);
+  const [looking, setLooking] = React.useState(false);
   const [query, setQuery] = React.useState("");
-
-  // Derived from `items`, not a snapshot, so a restock tap made from inside
-  // the edit sheet shows up there immediately.
   const editing = editingId ? (items?.find((i) => i.id === editingId) ?? null) : null;
+
+  // Guards a lookup in flight against a second scan landing before it
+  // resolves, so the stale response can't overwrite the newer scan's sheet.
+  const pendingLookup = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     const supabase = createClient();
@@ -164,24 +182,43 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       query,
       setQuery,
       adjust,
+      looking,
       openAdd: () => {
         setEditingId(null);
-        setAddBarcode(null);
+        setPrefill(null);
+        pendingLookup.current = null;
+        setLooking(false);
         setOpen(true);
       },
       openEdit: (item: Item) => {
         setEditingId(item.id);
-        setAddBarcode(null);
+        setPrefill(null);
+        pendingLookup.current = null;
+        setLooking(false);
         setOpen(true);
       },
       resolveScan: (barcode: string) => {
         const bound = findByBarcode(items, barcode);
         setEditingId(bound?.id ?? null);
-        setAddBarcode(bound ? null : barcode);
+        setPrefill(bound ? null : { barcode, brand: null, name: null });
         setOpen(true);
+
+        if (bound) {
+          pendingLookup.current = null;
+          setLooking(false);
+          return;
+        }
+
+        pendingLookup.current = barcode;
+        setLooking(true);
+        lookupBarcode(barcode).then((hit) => {
+          if (pendingLookup.current !== barcode) return;
+          setLooking(false);
+          if (hit) setPrefill({ barcode, brand: hit.brand, name: hit.name });
+        });
       },
     }),
-    [items, query, adjust]
+    [items, query, adjust, looking]
   );
 
   return (
@@ -194,7 +231,10 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         onOpenChange={setOpen}
         categories={value.categories}
         locations={distinct(items, "location")}
-        prefillBarcode={addBarcode}
+        prefillBarcode={prefill?.barcode}
+        prefillBrand={prefill?.brand}
+        prefillName={prefill?.name}
+        looking={looking}
         onSave={save}
         onArchive={archive}
         onAdjust={adjust}

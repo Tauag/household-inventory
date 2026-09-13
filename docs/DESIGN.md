@@ -9,7 +9,7 @@ Next.js (App Router) on Vercel. Supabase project providing Postgres, Auth, and S
 ```
 Phone (PWA)
   ├── supabase-js ──► Supabase  (Postgres + RLS, Auth, Storage)
-  └── /api/barcode/[code] ──► Open Beauty Facts / Open Food Facts
+  └── /api/barcode/[code] ──► Open Beauty Facts
 ```
 
 ### The entire inventory is one client-side array
@@ -116,7 +116,7 @@ Verify camera changes on a phone, never a laptop webcam. A webcam resolves the w
 ### Resolving a code
 
 1. Known code: `items.barcode` matches, jump to the item. This is the path for every scan after the first.
-2. Unknown code: call `/api/barcode/[code]`, which tries Open Beauty Facts then Open Food Facts (both free, no key, no rate limit worth planning around) and returns brand, name, and image URL if found.
+2. Unknown code: call `/api/barcode/[code]`, which tries Open Beauty Facts (free, no key, no rate limit worth planning around) and returns brand, name, and image URL if found. No Open Food Facts fallback; not worth the second call for this household.
 3. Nothing found: open the new-item form with the barcode prefilled and the name blank.
 
 Coverage for K-beauty is poor, so step 3 is the common case on first scan. Amazon FNSKU stickers cover the product's own barcode, so those items scan as a warehouse label no product database knows, which is step 3 again. The lookup is a convenience on top of scan-to-bind, not a dependency. Once bound, the code resolves locally forever.
@@ -156,7 +156,7 @@ A free Supabase project pauses after a week of no requests. A household using th
 5. Add, edit, restock, low-stock list.
 6. Barcode scan and bind. The WASM decoder is verified; see Scanning.
 7. Barcode lookup route.
-8. Photos.
-9. PWA manifest, custom subdomain.
+8. PWA manifest, custom subdomain.
+9. Photos, lowest priority.
 
 Ship after step 5. Steps 6 through 9 are real improvements but the app is usable and better than the sheet without them.

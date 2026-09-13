@@ -28,6 +28,8 @@ export function ItemForm({
   categories,
   locations,
   prefillBarcode,
+  prefillBrand,
+  prefillName,
   onSave,
   onArchive,
   onAdjust,
@@ -111,8 +113,8 @@ export function ItemForm({
           </Field>
         ) : null}
 
-        <TextField label="Brand" name="brand" defaultValue={item?.brand ?? ""} />
-        <TextField label="Name" name="name" defaultValue={item?.name} required />
+        <TextField label="Brand" name="brand" defaultValue={item?.brand ?? prefillBrand ?? ""} />
+        <TextField label="Name" name="name" defaultValue={item?.name ?? prefillName ?? ""} required />
 
         {item ? (
           <div className="grid grid-cols-2 gap-3">
@@ -216,7 +218,7 @@ export function ItemForm({
           />
           <Field>
             <FieldLabel htmlFor="purchase_url">Purchase link</FieldLabel>
-            <InputGroup>
+            <InputGroup className="h-11">
               <InputGroupInput
                 id="purchase_url"
                 name="purchase_url"

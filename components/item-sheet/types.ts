@@ -8,6 +8,9 @@ export type ItemSheetProps = {
   categories: string[];
   locations: string[];
   prefillBarcode?: string | null;
+  prefillBrand?: string | null;
+  prefillName?: string | null;
+  looking?: boolean;
   onSave: (data: FormData) => Promise<boolean>;
   onArchive: (item: Item) => void;
   onAdjust: (item: Item, delta: number) => void;
