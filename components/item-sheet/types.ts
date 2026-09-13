@@ -9,4 +9,5 @@ export type ItemSheetProps = {
   prefillBarcode?: string | null;
   onSave: (data: FormData) => Promise<boolean>;
   onArchive: (item: Item) => void;
+  onAdjust: (item: Item, delta: number) => void;
 };

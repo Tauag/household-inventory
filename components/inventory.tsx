@@ -37,10 +37,14 @@ function fail(error: unknown) {
 
 export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = React.useState<Item[] | null>(null);
-  const [editing, setEditing] = React.useState<Item | null>(null);
+  const [editingId, setEditingId] = React.useState<string | null>(null);
   const [addBarcode, setAddBarcode] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
+
+  // Derived from `items`, not a snapshot, so a restock tap made from inside
+  // the edit sheet shows up there immediately.
+  const editing = editingId ? (items?.find((i) => i.id === editingId) ?? null) : null;
 
   React.useEffect(() => {
     const supabase = createClient();
@@ -99,11 +103,11 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
 
     try {
-      if (editing) {
+      if (editingId) {
         const { data: row, error } = await supabase
           .from("items")
           .update(parseItemEditForm(data))
-          .eq("id", editing.id)
+          .eq("id", editingId)
           .select(ITEM_COLUMNS)
           .single();
         if (error) throw error;
@@ -161,18 +165,18 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       setQuery,
       adjust,
       openAdd: () => {
-        setEditing(null);
+        setEditingId(null);
         setAddBarcode(null);
         setOpen(true);
       },
       openEdit: (item: Item) => {
-        setEditing(item);
+        setEditingId(item.id);
         setAddBarcode(null);
         setOpen(true);
       },
       resolveScan: (barcode: string) => {
         const bound = findByBarcode(items, barcode);
-        setEditing(bound ?? null);
+        setEditingId(bound?.id ?? null);
         setAddBarcode(bound ? null : barcode);
         setOpen(true);
       },
@@ -192,6 +196,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         prefillBarcode={addBarcode}
         onSave={save}
         onArchive={archive}
+        onAdjust={adjust}
       />
     </InventoryContext.Provider>
   );

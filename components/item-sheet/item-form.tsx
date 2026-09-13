@@ -2,8 +2,15 @@
 
 import * as React from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowDown01Icon, ArrowUp01Icon, Archive02Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowDown01Icon,
+  ArrowUp01Icon,
+  Archive02Icon,
+  MinusSignIcon,
+  PlusSignIcon,
+} from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
 import { CategoryField } from "./category-field";
@@ -17,6 +24,7 @@ export function ItemForm({
   prefillBarcode,
   onSave,
   onArchive,
+  onAdjust,
   onOpenChange,
 }: ItemSheetProps) {
   const barcode = item?.barcode ?? prefillBarcode ?? "";
@@ -49,21 +57,53 @@ export function ItemForm({
       </datalist>
 
       <FieldGroup className="min-h-0 flex-1 gap-4 overflow-y-auto px-4 pb-4">
-        <TextField label="Name" name="name" defaultValue={item?.name} required />
         <TextField label="Brand" name="brand" defaultValue={item?.brand ?? ""} />
+        <TextField label="Name" name="name" defaultValue={item?.name} required />
 
         {item ? (
-          <TextField
-            label="Reorder at"
-            name="reorder_at"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            step={1}
-            defaultValue={item.reorder_at}
-            required
-            description="Shows in Low stock at this count or below."
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <Field>
+              <FieldLabel>Quantity</FieldLabel>
+              <ButtonGroup>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-xl"
+                  disabled={item.quantity === 0}
+                  onClick={() => onAdjust(item, -1)}
+                  aria-label={`Use one ${item.name}`}
+                >
+                  <HugeiconsIcon icon={MinusSignIcon} />
+                </Button>
+                <ButtonGroupText
+                  aria-live="polite"
+                  className="h-11 flex-1 justify-center gap-0 bg-background px-0 text-[15px] tabular-nums"
+                >
+                  {item.quantity}
+                </ButtonGroupText>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-xl"
+                  onClick={() => onAdjust(item, 1)}
+                  aria-label={`Restock one ${item.name}`}
+                >
+                  <HugeiconsIcon icon={PlusSignIcon} />
+                </Button>
+              </ButtonGroup>
+            </Field>
+            <TextField
+              label="Reorder at"
+              name="reorder_at"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={1}
+              defaultValue={item.reorder_at}
+              required
+              description="Low stock at this count or below."
+            />
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <TextField
