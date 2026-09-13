@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -80,11 +81,11 @@ export function AppChrome({ email, children }: Props) {
       <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur-sm">
         <div className="flex h-14 items-center gap-2 px-2 sm:px-4">
           <span className="flex items-center gap-2 px-2 text-base font-semibold tracking-tight md:hidden">
-            <img src="/bear-logo.png" alt="" className="size-7" />
+            <Image src="/bear-logo.png" alt="" width={28} height={28} className="size-7" />
             {title}
           </span>
           <span className="hidden px-2 md:block">
-            <img src="/bear-logo.png" alt="Inventory" className="size-7" />
+            <Image src="/bear-logo.png" alt="Inventory" width={28} height={28} className="size-7" />
           </span>
 
           <nav className="ml-2 hidden items-center gap-1 md:flex">
