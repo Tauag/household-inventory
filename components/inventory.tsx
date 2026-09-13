@@ -189,6 +189,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       {children}
       <ItemSheet
         item={editing}
+        items={items}
         open={open}
         onOpenChange={setOpen}
         categories={value.categories}
@@ -197,6 +198,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         onSave={save}
         onArchive={archive}
         onAdjust={adjust}
+        onAttachExisting={(item) => setEditingId(item.id)}
       />
     </InventoryContext.Provider>
   );

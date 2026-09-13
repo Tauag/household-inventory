@@ -11,29 +11,46 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { itemLabel } from "@/lib/items";
+import { matchesSearch } from "@/lib/search";
 import { CategoryField } from "./category-field";
 import { TextField } from "./text-field";
 import type { ItemSheetProps } from "./types";
 
 export function ItemForm({
   item,
+  items,
   categories,
   locations,
   prefillBarcode,
   onSave,
   onArchive,
   onAdjust,
+  onAttachExisting,
   onOpenChange,
 }: ItemSheetProps) {
-  const barcode = item?.barcode ?? prefillBarcode ?? "";
-  // Open "More details" by default when there's a barcode to show, so a scan
-  // doesn't look like it did nothing.
+  // Prefer the freshly-scanned code over a stale one already on the item,
+  // so attaching a scan to an existing item shows what's about to be saved.
+  const barcode = prefillBarcode ?? item?.barcode ?? "";
   const [more, setMore] = React.useState(!!barcode);
   const [pending, setPending] = React.useState(false);
+  const [matchQuery, setMatchQuery] = React.useState("");
 
   const details = [item?.category, item?.location].filter(Boolean).join(" · ");
+
+  // Only offered when a scan matched no barcode: lets that scan attach to an
+  // item that already exists instead of Save creating a duplicate.
+  const showMatch = !item && !!prefillBarcode;
+  const matches = React.useMemo(
+    () =>
+      showMatch && matchQuery
+        ? (items ?? []).filter((i) => matchesSearch(itemLabel(i), matchQuery)).slice(0, 5)
+        : [],
+    [showMatch, items, matchQuery]
+  );
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,6 +74,40 @@ export function ItemForm({
       </datalist>
 
       <FieldGroup className="min-h-0 flex-1 gap-4 overflow-y-auto px-4 pb-4">
+        {showMatch ? (
+          <Field>
+            <FieldLabel htmlFor="match-existing">Already have this item?</FieldLabel>
+            <Input
+              id="match-existing"
+              className="h-11"
+              placeholder="Search your items"
+              value={matchQuery}
+              onChange={(e) => setMatchQuery(e.target.value)}
+            />
+            {matches.length > 0 ? (
+              <ul className="flex flex-col gap-1 rounded-lg border p-1">
+                {matches.map((match) => (
+                  <li key={match.id}>
+                    <button
+                      type="button"
+                      onClick={() => onAttachExisting(match)}
+                      className="w-full rounded-md px-2.5 py-2 text-left text-sm outline-none hover:bg-muted focus-visible:bg-muted"
+                    >
+                      {itemLabel(match)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <FieldDescription>
+                {matchQuery
+                  ? "No match. Fill in the details below to add it as new."
+                  : "Attach the scan to it instead of adding a duplicate."}
+              </FieldDescription>
+            )}
+          </Field>
+        ) : null}
+
         <TextField label="Brand" name="brand" defaultValue={item?.brand ?? ""} />
         <TextField label="Name" name="name" defaultValue={item?.name} required />
 
@@ -158,7 +209,7 @@ export function ItemForm({
             name="barcode"
             inputMode="numeric"
             defaultValue={barcode}
-            description={prefillBarcode && !item ? "From the scan. Edit it if it's wrong." : undefined}
+            description={prefillBarcode ? "From the scan. Edit it if it's wrong." : undefined}
           />
           <TextField
             label="Purchase link"
