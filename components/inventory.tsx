@@ -3,7 +3,7 @@
 import * as React from "react";
 import { createClient } from "@/lib/supabase/client";
 import { parseItemEditForm, parseItemForm } from "@/lib/item-form";
-import { ITEM_COLUMNS, byName, distinct, isLow, type Item } from "@/lib/items";
+import { ITEM_COLUMNS, byName, distinct, findByBarcode, isLow, type Item } from "@/lib/items";
 import { toast } from "@/components/ui/toast";
 import { ItemSheet } from "@/components/item-sheet";
 
@@ -16,6 +16,7 @@ type Inventory = {
   adjust: (item: Item, delta: number) => void;
   openAdd: () => void;
   openEdit: (item: Item) => void;
+  resolveScan: (barcode: string) => void;
 };
 
 const InventoryContext = React.createContext<Inventory | null>(null);
@@ -37,6 +38,7 @@ function fail(error: unknown) {
 export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = React.useState<Item[] | null>(null);
   const [editing, setEditing] = React.useState<Item | null>(null);
+  const [addBarcode, setAddBarcode] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
 
@@ -160,10 +162,18 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       adjust,
       openAdd: () => {
         setEditing(null);
+        setAddBarcode(null);
         setOpen(true);
       },
       openEdit: (item: Item) => {
         setEditing(item);
+        setAddBarcode(null);
+        setOpen(true);
+      },
+      resolveScan: (barcode: string) => {
+        const bound = findByBarcode(items, barcode);
+        setEditing(bound ?? null);
+        setAddBarcode(bound ? null : barcode);
         setOpen(true);
       },
     }),
@@ -179,6 +189,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         onOpenChange={setOpen}
         categories={value.categories}
         locations={distinct(items, "location")}
+        prefillBarcode={addBarcode}
         onSave={save}
         onArchive={archive}
       />

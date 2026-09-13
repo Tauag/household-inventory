@@ -4,6 +4,7 @@ export type ItemFields = {
   reorder_at: number;
   category: string | null;
   location: string | null;
+  barcode: string | null;
   purchase_url: string | null;
   notes: string | null;
 };
@@ -24,6 +25,7 @@ function parseItemFields(data: FormData): ItemFields {
     reorder_at: Number(data.get("reorder_at")),
     category: text(data, "category") || null,
     location: text(data, "location") || null,
+    barcode: text(data, "barcode") || null,
     purchase_url: text(data, "purchase_url") || null,
     notes: text(data, "notes") || null,
   };

@@ -6,12 +6,13 @@ export type Item = {
   reorder_at: number;
   category: string | null;
   location: string | null;
+  barcode: string | null;
   purchase_url: string | null;
   notes: string | null;
 };
 
 export const ITEM_COLUMNS =
-  "id, brand, name, quantity, reorder_at, category, location, purchase_url, notes";
+  "id, brand, name, quantity, reorder_at, category, location, barcode, purchase_url, notes";
 
 export function isLow(item: Pick<Item, "quantity" | "reorder_at">) {
   return item.quantity <= item.reorder_at;
@@ -33,4 +34,10 @@ export function byName(a: Item, b: Item) {
 
 export function distinct(items: Item[] | null, key: "category" | "location") {
   return [...new Set(items?.map((i) => i[key]).filter((v): v is string => !!v))].sort();
+}
+
+// The loaded array is the entire inventory, so a scanned code resolves here
+// with no network call, per DESIGN.md.
+export function findByBarcode(items: Item[] | null, barcode: string) {
+  return items?.find((i) => i.barcode === barcode);
 }
