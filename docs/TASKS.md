@@ -11,8 +11,8 @@ Done when: a bound code resolves locally with no network call.
 
 ## T14 Barcode lookup route
 
-`/api/barcode/[code]`, tries Open Beauty Facts then Open Food Facts, returns brand, name,
-image URL. Anon key only, never the service role key.
+`/api/barcode/[code]`, tries Open Beauty Facts, returns brand, name, image URL. Anon key
+only, never the service role key.
 
 Done when: a miss still lands on the prefilled form rather than an error.
 

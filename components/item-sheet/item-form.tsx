@@ -218,7 +218,7 @@ export function ItemForm({
           />
           <Field>
             <FieldLabel htmlFor="purchase_url">Purchase link</FieldLabel>
-            <InputGroup>
+            <InputGroup className="h-11">
               <InputGroupInput
                 id="purchase_url"
                 name="purchase_url"

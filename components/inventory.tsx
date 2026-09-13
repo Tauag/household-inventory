@@ -18,6 +18,7 @@ type Inventory = {
   openAdd: () => void;
   openEdit: (item: Item) => void;
   resolveScan: (barcode: string) => void;
+  looking: boolean;
 };
 
 const InventoryContext = React.createContext<Inventory | null>(null);
@@ -28,13 +29,12 @@ export function useInventory() {
   return value;
 }
 
-// A miss (no product, timeout, offline) resolves to null rather than
-// throwing, so an unknown code always still lands on the prefilled form.
 async function lookupBarcode(barcode: string): Promise<BarcodeHit | null> {
   try {
     const res = await fetch(`/api/barcode/${encodeURIComponent(barcode)}`);
     return res.ok ? await res.json() : null;
   } catch {
+    // Didn't find a match or otherwise errored: scan still lands on the form.
     return null;
   }
 }
@@ -56,14 +56,13 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     name: string | null;
   } | null>(null);
   const [open, setOpen] = React.useState(false);
+  const [looking, setLooking] = React.useState(false);
   const [query, setQuery] = React.useState("");
+  const editing = editingId ? (items?.find((i) => i.id === editingId) ?? null) : null;
+
   // Guards a lookup in flight against a second scan landing before it
   // resolves, so the stale response can't overwrite the newer scan's sheet.
   const pendingLookup = React.useRef<string | null>(null);
-
-  // Derived from `items`, not a snapshot, so a restock tap made from inside
-  // the edit sheet shows up there immediately.
-  const editing = editingId ? (items?.find((i) => i.id === editingId) ?? null) : null;
 
   React.useEffect(() => {
     const supabase = createClient();
@@ -183,16 +182,19 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       query,
       setQuery,
       adjust,
+      looking,
       openAdd: () => {
         setEditingId(null);
         setPrefill(null);
         pendingLookup.current = null;
+        setLooking(false);
         setOpen(true);
       },
       openEdit: (item: Item) => {
         setEditingId(item.id);
         setPrefill(null);
         pendingLookup.current = null;
+        setLooking(false);
         setOpen(true);
       },
       resolveScan: (barcode: string) => {
@@ -203,17 +205,20 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
 
         if (bound) {
           pendingLookup.current = null;
+          setLooking(false);
           return;
         }
 
         pendingLookup.current = barcode;
+        setLooking(true);
         lookupBarcode(barcode).then((hit) => {
-          if (!hit || pendingLookup.current !== barcode) return;
-          setPrefill({ barcode, brand: hit.brand, name: hit.name });
+          if (pendingLookup.current !== barcode) return;
+          setLooking(false);
+          if (hit) setPrefill({ barcode, brand: hit.brand, name: hit.name });
         });
       },
     }),
-    [items, query, adjust]
+    [items, query, adjust, looking]
   );
 
   return (
@@ -229,6 +234,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         prefillBarcode={prefill?.barcode}
         prefillBrand={prefill?.brand}
         prefillName={prefill?.name}
+        looking={looking}
         onSave={save}
         onArchive={archive}
         onAdjust={adjust}

@@ -1,5 +1,7 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Loading03Icon } from "@hugeicons/core-free-icons";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Sheet,
@@ -20,17 +22,27 @@ import type { ItemSheetProps } from "./types";
 
 export function ItemSheet(props: ItemSheetProps) {
   const isMobile = useIsMobile();
-  const { item, open, onOpenChange, prefillBarcode, prefillBrand, prefillName } = props;
+  const { item, open, onOpenChange, prefillBarcode, prefillBrand, prefillName, looking } = props;
 
-  const title = item ? "Edit item" : "Add item";
+  const titleText = item ? "Edit item" : "Add item";
+  const title = (
+    <>
+      {titleText}
+      {looking ? (
+        <HugeiconsIcon
+          icon={Loading03Icon}
+          className="size-4 animate-spin text-muted-foreground"
+          aria-label="Looking up barcode"
+        />
+      ) : null}
+    </>
+  );
   const description = item
     ? "Update the details of this item."
     : "Only name and quantity are required.";
 
   // Remount on a new prefill too, so a second scan's default value isn't
-  // shadowed by whatever the first scan's form still has mounted. Brand and
-  // name are in the key because the barcode lookup arrives after the sheet
-  // is already open and the fields are uncontrolled.
+  // shadowed by whatever the first scan's form still has mounted.
   // lazy: this remount also wipes a fast typist's edits if the lookup lands
   // late. Upgrade path if that ever bites: only remount when the form is
   // still pristine.
@@ -47,7 +59,7 @@ export function ItemSheet(props: ItemSheetProps) {
         <SheetContent side="bottom" className="max-h-[92dvh] gap-0 rounded-t-xl pt-2">
           <div aria-hidden className="mx-auto h-1 w-9 shrink-0 rounded-full bg-border" />
           <SheetHeader className="pb-2">
-            <SheetTitle>{title}</SheetTitle>
+            <SheetTitle className="flex items-center gap-2">{title}</SheetTitle>
             <SheetDescription>{description}</SheetDescription>
           </SheetHeader>
           {form}
@@ -60,7 +72,7 @@ export function ItemSheet(props: ItemSheetProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[85dvh] flex-col gap-0 p-0 sm:max-w-md">
         <DialogHeader className="p-4 pb-2">
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         {form}
