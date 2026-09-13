@@ -156,7 +156,7 @@ A free Supabase project pauses after a week of no requests. A household using th
 5. Add, edit, restock, low-stock list.
 6. Barcode scan and bind. The WASM decoder is verified; see Scanning.
 7. Barcode lookup route.
-8. Photos.
-9. PWA manifest, custom subdomain.
+8. PWA manifest, custom subdomain.
+9. Photos, lowest priority.
 
 Ship after step 5. Steps 6 through 9 are real improvements but the app is usable and better than the sheet without them.

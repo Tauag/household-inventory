@@ -20,7 +20,7 @@ import type { ItemSheetProps } from "./types";
 
 export function ItemSheet(props: ItemSheetProps) {
   const isMobile = useIsMobile();
-  const { item, open, onOpenChange, prefillBarcode } = props;
+  const { item, open, onOpenChange, prefillBarcode, prefillBrand, prefillName } = props;
 
   const title = item ? "Edit item" : "Add item";
   const description = item
@@ -28,8 +28,18 @@ export function ItemSheet(props: ItemSheetProps) {
     : "Only name and quantity are required.";
 
   // Remount on a new prefill too, so a second scan's default value isn't
-  // shadowed by whatever the first scan's form still has mounted.
-  const form = <ItemForm key={item?.id ?? `new:${prefillBarcode ?? ""}`} {...props} />;
+  // shadowed by whatever the first scan's form still has mounted. Brand and
+  // name are in the key because the barcode lookup arrives after the sheet
+  // is already open and the fields are uncontrolled.
+  // lazy: this remount also wipes a fast typist's edits if the lookup lands
+  // late. Upgrade path if that ever bites: only remount when the form is
+  // still pristine.
+  const form = (
+    <ItemForm
+      key={item?.id ?? `new:${prefillBarcode ?? ""}:${prefillBrand ?? ""}:${prefillName ?? ""}`}
+      {...props}
+    />
+  );
 
   if (isMobile) {
     return (
