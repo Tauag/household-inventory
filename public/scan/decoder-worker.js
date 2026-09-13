@@ -4,12 +4,15 @@
 // It copies the file into static/media verbatim, so the browser fetches raw
 // TypeScript and the worker dies on a SyntaxError. Loading zxing's IIFE build
 // with importScripts sidesteps the bundler entirely.
-// lazy: zxing-reader.js and zxing_reader.wasm are copies of node_modules files,
-// so a zxing-wasm version bump needs a manual re-copy of both. If the spike
-// graduates, replace the copies with a postinstall step.
-importScripts("/scan/zxing-reader.js");
+// lazy: these are copies of node_modules files, so a zxing-wasm version bump
+// needs a manual re-copy of both into a folder named for the new version, and
+// the two paths here updated. If the spike graduates, replace the copies with a
+// postinstall step. The version lives in the path because next.config.ts serves
+// /scan/vendor/* as immutable, so a bump must change the URL to reach a phone
+// that already cached the old one.
+importScripts("/scan/vendor/3.1.4/zxing-reader.js");
 
-const WASM_URL = "/scan/zxing_reader.wasm";
+const WASM_URL = "/scan/vendor/3.1.4/zxing_reader.wasm";
 
 // Emscripten answers a bad wasm response by calling abort(), which throws
 // outside any promise chain we can catch. Fetch the bytes first so a miss is
