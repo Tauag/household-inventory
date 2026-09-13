@@ -140,7 +140,7 @@ export function ItemList({ view }: { view: "all" | "low" }) {
       ) : (
         <ul>
           {visible.map((item) => (
-            <ItemRow key={item.id} item={item} showBuy={view === "low"} />
+            <ItemRow key={item.id} item={item} />
           ))}
         </ul>
       )}

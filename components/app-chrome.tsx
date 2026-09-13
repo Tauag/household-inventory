@@ -131,7 +131,7 @@ export function AppChrome({ email, children }: Props) {
                 <HugeiconsIcon icon={Search01Icon} className="size-[18px]" />
               </InputGroupAddon>
               <InputGroupInput
-                type="search"
+                type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search brand or name"

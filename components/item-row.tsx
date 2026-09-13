@@ -10,10 +10,9 @@ import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
 
 type Props = {
   item: Item;
-  showBuy?: boolean;
 }
 
-export function ItemRow({ item, showBuy = false }: Props) {
+export function ItemRow({ item }: Props) {
   const { adjust, openEdit } = useInventory();
   const low = isLow(item);
   const meta = [item.location, item.category].filter(Boolean).join(" · ");
@@ -34,23 +33,23 @@ export function ItemRow({ item, showBuy = false }: Props) {
           <span className="text-[15px] leading-5 font-medium text-pretty">{item.name}</span>
         </button>
 
-        {showBuy && item.purchase_url ? (
-          <Button
-            variant="outline"
-            size="xl"
-            className="mt-1.5"
-            nativeButton={false}
-            render={
-              <a href={item.purchase_url} target="_blank" rel="noopener noreferrer" />
-            }
-          >
-            <HugeiconsIcon icon={LinkSquare02Icon} />
-            Reorder
-          </Button>
-        ) : meta ? (
-          <span className="text-xs text-muted-foreground">{meta}</span>
-        ) : null}
+        {meta ? <span className="text-xs text-muted-foreground">{meta}</span> : null}
       </div>
+
+      {item.purchase_url ? (
+        <Button
+          variant="outline"
+          size="icon-xl"
+          className="shrink-0"
+          nativeButton={false}
+          aria-label={`Reorder ${item.name}`}
+          render={
+            <a href={item.purchase_url} target="_blank" rel="noopener noreferrer" />
+          }
+        >
+          <HugeiconsIcon icon={LinkSquare02Icon} />
+        </Button>
+      ) : null}
 
       <ButtonGroup className="shrink-0">
         <Button
