@@ -6,6 +6,7 @@ import {
   ArrowDown01Icon,
   ArrowUp01Icon,
   Archive02Icon,
+  LinkSquare02Icon,
   MinusSignIcon,
   PlusSignIcon,
 } from "@hugeicons/core-free-icons";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Textarea } from "@/components/ui/textarea";
 import { itemLabel } from "@/lib/items";
 import { matchesSearch } from "@/lib/search";
@@ -38,6 +40,7 @@ export function ItemForm({
   const [more, setMore] = React.useState(!!barcode);
   const [pending, setPending] = React.useState(false);
   const [matchQuery, setMatchQuery] = React.useState("");
+  const [purchaseUrl, setPurchaseUrl] = React.useState(item?.purchase_url ?? "");
 
   const details = [item?.category, item?.location].filter(Boolean).join(" · ");
 
@@ -211,14 +214,37 @@ export function ItemForm({
             defaultValue={barcode}
             description={prefillBarcode ? "From the scan. Edit it if it's wrong." : undefined}
           />
-          <TextField
-            label="Purchase link"
-            name="purchase_url"
-            type="url"
-            inputMode="url"
-            placeholder="https://"
-            defaultValue={item?.purchase_url ?? ""}
-          />
+          <Field>
+            <FieldLabel htmlFor="purchase_url">Purchase link</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="purchase_url"
+                name="purchase_url"
+                type="url"
+                inputMode="url"
+                placeholder="https://"
+                autoComplete="off"
+                data-1p-ignore=""
+                data-lpignore="true"
+                data-form-type="other"
+                value={purchaseUrl}
+                onChange={(e) => setPurchaseUrl(e.target.value)}
+              />
+              {purchaseUrl ? (
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    type="button"
+                    size="icon-xs"
+                    aria-label="Open purchase link"
+                    nativeButton={false}
+                    render={<a href={purchaseUrl} target="_blank" rel="noopener noreferrer" />}
+                  >
+                    <HugeiconsIcon icon={LinkSquare02Icon} />
+                  </InputGroupButton>
+                </InputGroupAddon>
+              ) : null}
+            </InputGroup>
+          </Field>
           <Field>
             <FieldLabel htmlFor="notes">Notes</FieldLabel>
             <Textarea

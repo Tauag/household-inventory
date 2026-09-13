@@ -40,7 +40,7 @@ export function ItemRow({ item }: Props) {
         <Button
           variant="outline"
           size="icon-xl"
-          className="shrink-0"
+          className="hidden shrink-0 sm:inline-flex"
           nativeButton={false}
           aria-label={`Reorder ${item.name}`}
           render={
