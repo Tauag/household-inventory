@@ -21,6 +21,10 @@ test("parseItemForm", () => {
   const blank = parseItemForm(formData(required));
   assert.equal(blank.brand, null, "blank brand becomes null, not an empty string");
   assert.equal(blank.category, null, "blank category becomes null");
+  assert.equal(blank.barcode, null, "blank barcode becomes null");
+
+  const scanned = parseItemForm(formData({ ...required, barcode: " 012345678905 " }));
+  assert.equal(scanned.barcode, "012345678905", "barcode is trimmed");
 
   assert.throws(
     () => parseItemForm(formData({ ...required, name: "   " })),
