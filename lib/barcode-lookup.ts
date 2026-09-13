@@ -10,7 +10,7 @@ type OpenFactsProduct = {
 type OpenFactsResponse = { status?: number; product?: OpenFactsProduct };
 
 /**
- * Open Beauty/Food Facts return `status: 0` with no `product` for an unknown
+ * Open Beauty Facts return `status: 0` with no `product` for an unknown
  * code, not a 404, so a miss is a normal response shape, not a fetch error.
  */
 export function parseProduct(json: OpenFactsResponse): BarcodeHit | null {
