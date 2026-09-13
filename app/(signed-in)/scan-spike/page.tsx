@@ -14,6 +14,8 @@ declare global {
   }
 }
 
+const WASM_URL = "/zxing_reader.wasm";
+
 type Engine = "native" | "wasm";
 type Decode = (frame: ImageData) => Promise<string | undefined>;
 
@@ -28,8 +30,17 @@ async function makeDecoder(engine: Engine): Promise<Decode> {
   const { prepareZXingModule, readBarcodes } = await import("zxing-wasm/reader");
   // Serve the 931 KB wasm ourselves; the default is a jsDelivr URL, which would
   // put CDN latency into the decode timings this spike exists to measure.
+  //
+  // Fetch it here rather than letting emscripten locate it. Emscripten answers a
+  // bad response by calling abort(), which throws outside this promise chain, so
+  // the page dies with an uncaught RuntimeError instead of reporting the miss.
+  const response = await fetch(WASM_URL);
+  const contentType = response.headers.get("content-type") ?? "none";
+  if (!response.ok || !contentType.includes("wasm")) {
+    throw new Error(`${WASM_URL} returned ${response.status}, content-type ${contentType}`);
+  }
   await prepareZXingModule({
-    overrides: { locateFile: () => "/zxing_reader.wasm" },
+    overrides: { wasmBinary: await response.arrayBuffer() },
     fireImmediately: true,
   });
   return async (frame) => {
@@ -56,6 +67,17 @@ export default function ScanSpikePage() {
     () => false,
   );
   const engine: Engine = engineOverride ?? (hasNative ? "native" : "wasm");
+
+  useEffect(() => {
+    const onRejection = (e: PromiseRejectionEvent) => setError(`unhandled: ${String(e.reason)}`);
+    const onError = (e: ErrorEvent) => setError(`uncaught: ${e.message}`);
+    window.addEventListener("unhandledrejection", onRejection);
+    window.addEventListener("error", onError);
+    return () => {
+      window.removeEventListener("unhandledrejection", onRejection);
+      window.removeEventListener("error", onError);
+    };
+  }, []);
 
   useEffect(() => {
     if (!running) return;
@@ -150,7 +172,7 @@ export default function ScanSpikePage() {
               setEngineOverride(engine === "native" ? "wasm" : "native");
             }}
           >
-            {engine === "native" ? "BarcodeDetector" : "zxing-wasm"}
+            Use {engine === "native" ? "zxing-wasm" : "BarcodeDetector"}
           </Button>
         ) : (
           <Button variant="outline" disabled>
@@ -160,6 +182,8 @@ export default function ScanSpikePage() {
       </div>
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg border p-3 text-sm tabular-nums">
+        <dt className="text-muted-foreground">Engine</dt>
+        <dd className="text-right">{engine === "native" ? "BarcodeDetector" : "zxing-wasm"}</dd>
         <dt className="text-muted-foreground">Frames</dt>
         <dd className="text-right">{stats.frames}</dd>
         <dt className="text-muted-foreground">Decoded</dt>
