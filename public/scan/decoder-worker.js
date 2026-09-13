@@ -33,11 +33,17 @@ self.onmessage = async ({ data: { data, width, height } }) => {
     ready = ready || init();
     await ready;
     const image = new ImageData(new Uint8ClampedArray(data), width, height);
+    // AllReadable, not EANUPC. Restricting to EAN/UPC hides Code 128, ITF and
+    // 2D codes, which is what most Asian retail packaging turned out to carry.
+    // Costs decode time, which the worker absorbs, and the reported format is
+    // the point of the spike.
     const [result] = await ZXingWASM.readBarcodes(image, {
-      formats: ["EANUPC"],
+      formats: ["AllReadable"],
       tryHarder: true,
     });
-    self.postMessage({ code: result && result.isValid ? result.text : undefined });
+    self.postMessage(
+      result && result.isValid ? { code: result.text, format: result.format } : {},
+    );
   } catch (e) {
     self.postMessage({ error: e instanceof Error ? e.name + ": " + e.message : String(e) });
   }

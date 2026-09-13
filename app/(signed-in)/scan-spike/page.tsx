@@ -9,7 +9,7 @@ import { emptyTrial, recordFrame, summarize, type Trial } from "@/lib/scan-stats
 declare global {
   interface Window {
     BarcodeDetector?: new (options?: { formats?: string[] }) => {
-      detect(source: ImageData): Promise<{ rawValue: string }[]>;
+      detect(source: ImageData): Promise<{ rawValue: string; format: string }[]>;
     };
   }
 }
@@ -17,19 +17,23 @@ declare global {
 const WORKER_URL = "/scan/decoder-worker.js";
 
 type DecodeRequest = { data: ArrayBuffer; width: number; height: number };
-type DecodeResponse = { code?: string; error?: string };
+type DecodeResponse = { code?: string; format?: string; error?: string };
 
 type Engine = "native" | "wasm";
-type Decode = (frame: ImageData) => Promise<string | undefined>;
+type Decoded = { text: string; format: string };
+type Decode = (frame: ImageData) => Promise<Decoded | undefined>;
 
 /** Native detection is already off-thread in Chrome; only zxing needs the worker. */
 function makeDecoder(engine: Engine): { decode: Decode; dispose: () => void } {
   if (engine === "native") {
-    const detector = new window.BarcodeDetector!({
-      formats: ["ean_13", "ean_8", "upc_a", "upc_e"],
-    });
+    // No formats argument, so the detector uses every symbology the browser
+    // supports. Naming EAN/UPC here hid Code 128 and ITF packaging.
+    const detector = new window.BarcodeDetector!();
     return {
-      decode: async (frame) => (await detector.detect(frame))[0]?.rawValue,
+      decode: async (frame) => {
+        const [hit] = await detector.detect(frame);
+        return hit && { text: hit.rawValue, format: hit.format };
+      },
       dispose: () => {},
     };
   }
@@ -38,7 +42,9 @@ function makeDecoder(engine: Engine): { decode: Decode; dispose: () => void } {
   const decode: Decode = (frame) =>
     new Promise((resolve, reject) => {
       worker.onmessage = ({ data }: MessageEvent<DecodeResponse>) =>
-        data.error ? reject(new Error(data.error)) : resolve(data.code);
+        data.error
+          ? reject(new Error(data.error))
+          : resolve(data.code ? { text: data.code, format: data.format ?? "?" } : undefined);
       worker.onerror = (e) => reject(new Error(e.message || "decoder worker failed"));
       // Transfer rather than copy; a 1280x720 frame is 3.7 MB per attempt.
       const request: DecodeRequest = {
@@ -121,9 +127,11 @@ export default function ScanSpikePage() {
         const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
         const t0 = performance.now();
-        const code = await decode(frame);
+        const decoded = await decode(frame);
         const decodeMs = performance.now() - t0;
         if (stopped) break;
+        // Key by symbology too, so an unexpected format is visible in the log.
+        const code = decoded && `${decoded.format} ${decoded.text}`;
         setTrial((t) => recordFrame(t, { elapsedMs: t0 - startedAt, decodeMs, code }));
       }
     })().catch((e: unknown) => {
