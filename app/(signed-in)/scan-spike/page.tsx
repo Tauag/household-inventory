@@ -14,44 +14,47 @@ declare global {
   }
 }
 
-const WASM_URL = "/zxing_reader.wasm";
+const WORKER_URL = "/scan/decoder-worker.js";
+
+type DecodeRequest = { data: ArrayBuffer; width: number; height: number };
+type DecodeResponse = { code?: string; error?: string };
 
 type Engine = "native" | "wasm";
 type Decode = (frame: ImageData) => Promise<string | undefined>;
 
-async function makeDecoder(engine: Engine): Promise<Decode> {
+/** Native detection is already off-thread in Chrome; only zxing needs the worker. */
+function makeDecoder(engine: Engine): { decode: Decode; dispose: () => void } {
   if (engine === "native") {
     const detector = new window.BarcodeDetector!({
       formats: ["ean_13", "ean_8", "upc_a", "upc_e"],
     });
-    return async (frame) => (await detector.detect(frame))[0]?.rawValue;
+    return {
+      decode: async (frame) => (await detector.detect(frame))[0]?.rawValue,
+      dispose: () => {},
+    };
   }
 
-  const { prepareZXingModule, readBarcodes } = await import("zxing-wasm/reader");
-  // Serve the 931 KB wasm ourselves; the default is a jsDelivr URL, which would
-  // put CDN latency into the decode timings this spike exists to measure.
-  //
-  // Fetch it here rather than letting emscripten locate it. Emscripten answers a
-  // bad response by calling abort(), which throws outside this promise chain, so
-  // the page dies with an uncaught RuntimeError instead of reporting the miss.
-  const response = await fetch(WASM_URL);
-  const contentType = response.headers.get("content-type") ?? "none";
-  if (!response.ok || !contentType.includes("wasm")) {
-    throw new Error(`${WASM_URL} returned ${response.status}, content-type ${contentType}`);
-  }
-  await prepareZXingModule({
-    overrides: { wasmBinary: await response.arrayBuffer() },
-    fireImmediately: true,
-  });
-  return async (frame) => {
-    const [result] = await readBarcodes(frame, { formats: ["EANUPC"], tryHarder: true });
-    return result?.isValid ? result.text : undefined;
-  };
+  const worker = new Worker(WORKER_URL);
+  const decode: Decode = (frame) =>
+    new Promise((resolve, reject) => {
+      worker.onmessage = ({ data }: MessageEvent<DecodeResponse>) =>
+        data.error ? reject(new Error(data.error)) : resolve(data.code);
+      worker.onerror = (e) => reject(new Error(e.message || "decoder worker failed"));
+      // Transfer rather than copy; a 1280x720 frame is 3.7 MB per attempt.
+      const request: DecodeRequest = {
+        data: frame.data.buffer as ArrayBuffer,
+        width: frame.width,
+        height: frame.height,
+      };
+      worker.postMessage(request, [request.data]);
+    });
+  return { decode, dispose: () => worker.terminate() };
 }
 
 export default function ScanSpikePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const disposeRef = useRef<(() => void) | null>(null);
   const [engineOverride, setEngineOverride] = useState<Engine | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,8 +102,10 @@ export default function ScanSpikePage() {
       const video = videoRef.current!;
       video.srcObject = stream;
       await video.play();
+      if (stopped) return;
 
-      const decode = await makeDecoder(engine);
+      const { decode, dispose } = makeDecoder(engine);
+      disposeRef.current = dispose;
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
       const startedAt = performance.now();
@@ -130,6 +135,8 @@ export default function ScanSpikePage() {
       stopped = true;
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
+      disposeRef.current?.();
+      disposeRef.current = null;
     };
   }, [running, engine]);
 

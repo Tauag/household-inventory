@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored zxing build and the prebuilt worker that loads it.
+    "public/**",
   ]),
 ]);
 
