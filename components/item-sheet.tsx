@@ -32,8 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// Sentinel for the "Add new category" select item. Not a real category value,
-// so it never collides with one (categories come from user-entered text).
+// Sentinel for the "Add new category" select item. Not a real category value.
 const ADD_CATEGORY = "__add__";
 
 type Props = {
