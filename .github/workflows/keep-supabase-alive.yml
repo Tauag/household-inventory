@@ -9,4 +9,5 @@ jobs:
     steps:
       - run: |
           curl -sf "https://lziakqwcjkkksjtvkqip.supabase.co/rest/v1/" \
-            -H "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}"
+            -H "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}"
