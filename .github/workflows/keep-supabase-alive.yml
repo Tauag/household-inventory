@@ -8,5 +8,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          curl -sf "https://lziakqwcjkkksjtvkqip.supabase.co/auth/v1/health" \
+          curl -sf "https://lziakqwcjkkksjtvkqip.supabase.co/rest/v1/items?select=id&limit=1" \
             -H "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}"
