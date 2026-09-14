@@ -1,7 +1,7 @@
 name: Keep Supabase alive
 on:
   schedule:
-    - cron: "0 12 */3 * *" # every 3 days, resets Supabase's 7-day inactivity pause
+    - cron: "0 12 * * *" # daily, resets Supabase's 7-day inactivity pause
   workflow_dispatch: {}
 jobs:
   ping:
