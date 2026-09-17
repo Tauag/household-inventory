@@ -9,10 +9,11 @@ export type Item = {
   barcode: string | null;
   purchase_url: string | null;
   notes: string | null;
+  dont_reorder: boolean;
 };
 
 export const ITEM_COLUMNS =
-  "id, brand, name, quantity, reorder_at, category, location, barcode, purchase_url, notes";
+  "id, brand, name, quantity, reorder_at, category, location, barcode, purchase_url, notes, dont_reorder";
 
 export function isLow(item: Pick<Item, "quantity" | "reorder_at">) {
   return item.quantity <= item.reorder_at;

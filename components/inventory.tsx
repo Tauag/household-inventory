@@ -112,6 +112,30 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         setQuantity(item.id, (q) => Math.max(0, q - delta));
         return fail(error);
       }
+
+      // "Don't reorder" archived it server-side for hitting 0: drop it from
+      // view here too, since only the initial load filters archived_at.
+      if (data.archived_at) {
+        setItems((prev) => prev?.filter((i) => i.id !== item.id) ?? null);
+        setOpen(false);
+        toast.add({
+          title: `Archived ${item.name}`,
+          description: "It hit 0 with \"don't reorder\" on.",
+          actionProps: {
+            children: "Undo",
+            onClick: async () => {
+              const { error } = await createClient()
+                .from("items")
+                .update({ archived_at: null })
+                .eq("id", item.id);
+              if (error) return fail(error);
+              setItems((prev) => [...(prev ?? []), { ...item, quantity: data.quantity }].sort(byName));
+            },
+          },
+        });
+        return;
+      }
+
       setQuantity(item.id, () => data.quantity);
     },
     [setQuantity]

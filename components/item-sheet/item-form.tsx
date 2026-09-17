@@ -12,9 +12,10 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { itemLabel } from "@/lib/items";
 import { matchesSearch } from "@/lib/search";
@@ -184,6 +185,14 @@ export function ItemForm({
             />
           </div>
         )}
+
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldLabel htmlFor="dont_reorder">Don&apos;t reorder</FieldLabel>
+            <FieldDescription>Archive it automatically once it hits 0.</FieldDescription>
+          </FieldContent>
+          <Switch id="dont_reorder" name="dont_reorder" defaultChecked={item?.dont_reorder} />
+        </Field>
 
         <Button
           type="button"

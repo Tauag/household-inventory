@@ -30,6 +30,11 @@ test("parseItemForm", () => {
     () => parseItemForm(formData({ ...required, name: "   " })),
     "whitespace-only name is rejected"
   );
+
+  assert.equal(parseItemForm(formData(required)).dont_reorder, false, "unchecked switch is absent from FormData");
+  const noReorder = formData(required);
+  noReorder.set("dont_reorder", "on");
+  assert.equal(parseItemForm(noReorder).dont_reorder, true);
 });
 
 test("parseItemEditForm", () => {
