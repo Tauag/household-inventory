@@ -2,14 +2,14 @@
 
 Implements [DESIGN.md](DESIGN.md). Sequential.
 
-## T15 Custom subdomain
+## T15 Custom subdomain - won't do
 
 Point the domain at the Vercel deployment. Manual, in the registrar and Vercel dashboards;
 not a code change.
 
 Done when: the app opens at the custom subdomain, not the vercel.app URL.
 
-## T16 Photos
+## T16 Photos - won't do
 
 Client-side canvas resize to 512 px long edge, WebP, upload to a private bucket at
 `items/<item_id>.webp`. Batch-sign URLs for visible rows, one hour.
