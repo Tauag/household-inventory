@@ -5,15 +5,15 @@ import { Toaster } from "@/components/ui/toast";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
+	const supabase = await createClient();
+	const { data } = await supabase.auth.getClaims();
 
-  if (!data) redirect("/login");
+	if (!data) redirect("/login");
 
-  return (
-    <InventoryProvider>
-      <AppChrome email={String(data.claims.email ?? "")}>{children}</AppChrome>
-      <Toaster />
-    </InventoryProvider>
-  );
+	return (
+		<InventoryProvider>
+			<AppChrome email={String(data.claims.email ?? "")}>{children}</AppChrome>
+			<Toaster />
+		</InventoryProvider>
+	);
 }

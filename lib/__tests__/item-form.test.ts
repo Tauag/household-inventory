@@ -1,46 +1,63 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseItemForm, parseItemEditForm } from "../item-form.ts";
+import { parseItemEditForm, parseItemForm } from "../item-form.ts";
 
 function formData(fields: Record<string, string>) {
-  const data = new FormData();
-  for (const [key, value] of Object.entries(fields)) data.set(key, value);
-  return data;
+	const data = new FormData();
+	for (const [key, value] of Object.entries(fields)) data.set(key, value);
+	return data;
 }
 
 const required = { name: "Cream", quantity: "0", reorder_at: "1" };
 
 test("parseItemForm", () => {
-  const full = parseItemForm(
-    formData({ ...required, name: " Cream ", brand: " Aestura ", category: "Skincare" })
-  );
-  assert.equal(full.name, "Cream", "name is trimmed");
-  assert.equal(full.brand, "Aestura", "brand is trimmed");
-  assert.equal(full.category, "Skincare");
+	const full = parseItemForm(
+		formData({
+			...required,
+			name: " Cream ",
+			brand: " Aestura ",
+			category: "Skincare",
+		}),
+	);
+	assert.equal(full.name, "Cream", "name is trimmed");
+	assert.equal(full.brand, "Aestura", "brand is trimmed");
+	assert.equal(full.category, "Skincare");
 
-  const blank = parseItemForm(formData(required));
-  assert.equal(blank.brand, null, "blank brand becomes null, not an empty string");
-  assert.equal(blank.category, null, "blank category becomes null");
-  assert.equal(blank.barcode, null, "blank barcode becomes null");
+	const blank = parseItemForm(formData(required));
+	assert.equal(
+		blank.brand,
+		null,
+		"blank brand becomes null, not an empty string",
+	);
+	assert.equal(blank.category, null, "blank category becomes null");
+	assert.equal(blank.barcode, null, "blank barcode becomes null");
 
-  const scanned = parseItemForm(formData({ ...required, barcode: " 012345678905 " }));
-  assert.equal(scanned.barcode, "012345678905", "barcode is trimmed");
+	const scanned = parseItemForm(
+		formData({ ...required, barcode: " 012345678905 " }),
+	);
+	assert.equal(scanned.barcode, "012345678905", "barcode is trimmed");
 
-  assert.throws(
-    () => parseItemForm(formData({ ...required, name: "   " })),
-    "whitespace-only name is rejected"
-  );
+	assert.throws(
+		() => parseItemForm(formData({ ...required, name: "   " })),
+		"whitespace-only name is rejected",
+	);
 
-  assert.equal(parseItemForm(formData(required)).dont_reorder, false, "unchecked switch is absent from FormData");
-  const noReorder = formData(required);
-  noReorder.set("dont_reorder", "on");
-  assert.equal(parseItemForm(noReorder).dont_reorder, true);
+	assert.equal(
+		parseItemForm(formData(required)).dont_reorder,
+		false,
+		"unchecked switch is absent from FormData",
+	);
+	const noReorder = formData(required);
+	noReorder.set("dont_reorder", "on");
+	assert.equal(parseItemForm(noReorder).dont_reorder, true);
 });
 
 test("parseItemEditForm", () => {
-  const edit = parseItemEditForm(formData({ name: " Cream ", reorder_at: "2", brand: " " }));
-  assert.equal(edit.name, "Cream");
-  assert.equal(edit.reorder_at, 2);
-  assert.equal(edit.brand, null, "blank brand becomes null");
-  assert.ok(!("quantity" in edit), "quantity is not an editable field");
+	const edit = parseItemEditForm(
+		formData({ name: " Cream ", reorder_at: "2", brand: " " }),
+	);
+	assert.equal(edit.name, "Cream");
+	assert.equal(edit.reorder_at, 2);
+	assert.equal(edit.brand, null, "blank brand becomes null");
+	assert.ok(!("quantity" in edit), "quantity is not an editable field");
 });
