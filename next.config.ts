@@ -23,7 +23,7 @@ export default withSentryConfig(nextConfig, {
 
 	org: "gavin-li",
 
-	project: "javascript-nextjs",
+	project: "household-inventory",
 
 	// Only print logs for uploading source maps in CI
 	silent: !process.env.CI,
