@@ -37,9 +37,10 @@ export async function proxy(request: NextRequest) {
 	const { data } = await supabase.auth.getClaims();
 	const email = data?.claims.email as string | undefined;
 
-	// Skip the membership RPC unless we'd actually use the result.
-	let isMember: boolean | undefined;
-	if (email && !isAuthCallbackPath(pathname)) {
+	// The token hook sets is_member at issue time. Anything but true (hook off,
+	// old token, or member added since) re-checks live so nobody is locked out.
+	let isMember = data?.claims.is_member === true;
+	if (email && !isMember && !isAuthCallbackPath(pathname)) {
 		const { data: memberData } = await supabase.rpc("is_member");
 		isMember = Boolean(memberData);
 	}

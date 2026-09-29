@@ -55,8 +55,14 @@ function fail(error: unknown) {
 	});
 }
 
-export function InventoryProvider({ children }: { children: React.ReactNode }) {
-	const [items, setItems] = React.useState<Item[] | null>(null);
+export function InventoryProvider({
+	children,
+	initialItems,
+}: {
+	children: React.ReactNode;
+	initialItems: Item[] | null;
+}) {
+	const [items, setItems] = React.useState<Item[] | null>(initialItems);
 	const [editingId, setEditingId] = React.useState<string | null>(null);
 	const [prefill, setPrefill] = React.useState<{
 		barcode: string;
@@ -89,14 +95,14 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
 			else setItems(data);
 		}
 
-		load();
+		if (!initialItems) load();
 		// Refetch on focus so another device's change shows up without a manual reload.
 		window.addEventListener("focus", load);
 		return () => {
 			cancelled = true;
 			window.removeEventListener("focus", load);
 		};
-	}, []);
+	}, [initialItems]);
 
 	const setQuantity = React.useCallback(
 		(id: string, next: (quantity: number) => number) =>
