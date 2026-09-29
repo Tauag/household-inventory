@@ -5,10 +5,6 @@
 import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
-	// Errors only. lazy: this stops tracing at runtime, but Turbopack still
-	// ships the tracing code (Sentry's removeTracing is webpack-only).
-	integrations: (defaults) =>
-		defaults.filter((i) => i.name !== "BrowserTracing"),
 	dsn: "https://c741181e8151844405db3c78adbb76c1@o4512166196609025.ingest.us.sentry.io/4512166197592064",
 
 	// Turns off collection of data that could identify users. Adjust per category:
