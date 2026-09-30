@@ -15,7 +15,7 @@ import { cn } from "cn";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type * as React from "react";
+import * as React from "react";
 import { signOut } from "@/app/actions";
 import { useInventory } from "@/components/inventory";
 import { Badge } from "@/components/ui/badge";
@@ -35,13 +35,23 @@ import {
 	InputGroupButton,
 	InputGroupInput,
 } from "@/components/ui/input-group";
+import { createClient } from "@/lib/supabase/client";
 
 const NAV = [
 	{ href: "/", label: "Inventory", icon: Package01Icon },
 	{ href: "/low", label: "Low stock", icon: Alert02Icon },
 ] as const;
 
-function AccountMenu({ email }: { email: string }) {
+function AccountMenu() {
+	const [email, setEmail] = React.useState("");
+
+	// Display only, so the unverified local session is fine here.
+	React.useEffect(() => {
+		createClient()
+			.auth.getSession()
+			.then(({ data }) => setEmail(data.session?.user.email ?? ""));
+	}, []);
+
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger
@@ -65,12 +75,7 @@ function AccountMenu({ email }: { email: string }) {
 	);
 }
 
-type Props = {
-	email: string;
-	children: React.ReactNode;
-};
-
-export function AppChrome({ email, children }: Props) {
+export function AppChrome({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();
 	const { lowCount, openAdd, query, setQuery } = useInventory();
 	const active = NAV.find((n) => n.href === pathname) ?? NAV[0];
@@ -137,7 +142,7 @@ export function AppChrome({ email, children }: Props) {
 							<HugeiconsIcon icon={Add01Icon} />
 							Add item
 						</Button>
-						<AccountMenu email={email} />
+						<AccountMenu />
 					</div>
 				</div>
 
