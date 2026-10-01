@@ -92,12 +92,19 @@ async function store(cache, pathname, res, cachedHtml) {
 	const html = await res.clone().text();
 	const changed = cachedHtml !== undefined && (await cachedHtml) !== html;
 	if (changed) {
-		// The old build's chunks are gone from Netlify anyway; drop them so the
-		// cache holds one build at a time.
+		// Keep one build at a time. The old chunks are gone from Netlify anyway,
+		// and the other cached pages still point at them, so drop those too.
+		// lazy: each dropped page loads from the network once per deploy.
 		const keys = await cache.keys();
 		await Promise.all(
 			keys
-				.filter((req) => new URL(req.url).pathname.startsWith("/_next/static/"))
+				.filter((req) => {
+					const path = new URL(req.url).pathname;
+					return (
+						path.startsWith("/_next/static/") ||
+						(PAGES.includes(path) && path !== pathname)
+					);
+				})
 				.map((req) => cache.delete(req)),
 		);
 	}
@@ -105,10 +112,23 @@ async function store(cache, pathname, res, cachedHtml) {
 	return changed;
 }
 
+// Refetch a cached page to find a deploy that landed while the app was open.
+async function refresh(pathname) {
+	if (!PAGES.includes(pathname)) return false;
+	const cache = await caches.open(CACHE);
+	const cached = await cache.match(pathname);
+	if (!cached) return false;
+	const res = await fetch(pathname).catch(() => null);
+	return res ? store(cache, pathname, res, cached.text()) : false;
+}
+
 // The page asks once it has loaded, so no message gets sent before it listens.
+// "update?" reads the launch's background fetch; { check } fetches again.
 self.addEventListener("message", (event) => {
-	if (event.data !== "update?") return;
-	pendingUpdate.then((changed) => {
+	const reply = (changed) => {
 		if (changed) event.source.postMessage("update-ready");
-	});
+	};
+	if (event.data === "update?") pendingUpdate.then(reply);
+	else if (event.data?.check)
+		event.waitUntil(refresh(event.data.check).then(reply));
 });
