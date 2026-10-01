@@ -35,7 +35,7 @@ export function RegisterServiceWorker() {
 		const onMessage = (event: MessageEvent) => {
 			if (event.data !== "update-ready") return;
 			toast.add({
-				title: "A newer version is available. Reload to update!",
+				title: "A newer version of the app is available. Reload to update!",
 				timeout: 0,
 				actionProps: { children: "Reload", onClick: () => location.reload() },
 			});
