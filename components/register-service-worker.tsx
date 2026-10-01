@@ -6,7 +6,7 @@ import { toast } from "@/components/ui/toast";
 
 // Each check is a request to Netlify, so cap how often switching apps or
 // pages can send one.
-const CHECK_INTERVAL_MS = 60_000;
+const CHECK_INTERVAL_MS = 600_000;
 
 let prompted = false;
 
