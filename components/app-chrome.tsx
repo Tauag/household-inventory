@@ -16,7 +16,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
-import { signOut } from "@/app/actions";
 import { useInventory } from "@/components/inventory";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,7 +64,12 @@ function AccountMenu() {
 						{email}
 					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
-					<DropdownMenuItem onClick={() => signOut()}>
+					<DropdownMenuItem
+						onClick={async () => {
+							await createClient().auth.signOut();
+							location.replace("/login");
+						}}
+					>
 						<HugeiconsIcon icon={Logout01Icon} />
 						Sign out
 					</DropdownMenuItem>
