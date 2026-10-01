@@ -79,6 +79,9 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
 		let cancelled = false;
 
 		async function load() {
+			// sw.js can serve this page without proxy.ts running, so check here too.
+			const { data: auth } = await supabase.auth.getSession();
+			if (!auth.session) return location.replace("/login");
 			const { data, error } = await supabase
 				.from("items")
 				.select(ITEM_COLUMNS)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { toast } from "@/components/ui/toast";
 
 export function RegisterServiceWorker() {
 	useEffect(() => {
@@ -30,7 +31,21 @@ export function RegisterServiceWorker() {
 		};
 		window.addEventListener("pageshow", onPageShow);
 
+		// sw.js serves a cached page and fetches the new one in the background.
+		const onMessage = (event: MessageEvent) => {
+			if (event.data !== "update-ready") return;
+			toast.add({
+				title: "A newer version is available. Reload to update!",
+				timeout: 0,
+				actionProps: { children: "Reload", onClick: () => location.reload() },
+			});
+		};
+		navigator.serviceWorker.addEventListener("message", onMessage);
+		navigator.serviceWorker.startMessages();
+		navigator.serviceWorker.controller?.postMessage("update?");
+
 		return () => {
+			navigator.serviceWorker.removeEventListener("message", onMessage);
 			navigator.serviceWorker.removeEventListener(
 				"controllerchange",
 				onControllerChange,
