@@ -112,23 +112,26 @@ async function store(cache, pathname, res, cachedHtml) {
 	return changed;
 }
 
-// Refetch a cached page to find a deploy that landed while the app was open.
-async function refresh(pathname) {
-	if (!PAGES.includes(pathname)) return false;
+// Find a deploy that landed while the app was open. All pages share one build,
+// so compare whichever page is cached: in-app navigation never caches the
+// page the user is on.
+async function refresh() {
 	const cache = await caches.open(CACHE);
-	const cached = await cache.match(pathname);
-	if (!cached) return false;
-	const res = await fetch(pathname).catch(() => null);
-	return res ? store(cache, pathname, res, cached.text()) : false;
+	for (const path of PAGES) {
+		const cached = await cache.match(path);
+		if (!cached) continue;
+		const res = await fetch(path).catch(() => null);
+		return res ? store(cache, path, res, cached.text()) : false;
+	}
+	return false;
 }
 
 // The page asks once it has loaded, so no message gets sent before it listens.
-// "update?" reads the launch's background fetch; { check } fetches again.
+// "update?" reads the launch's background fetch; "check" fetches again.
 self.addEventListener("message", (event) => {
 	const reply = (changed) => {
 		if (changed) event.source.postMessage("update-ready");
 	};
 	if (event.data === "update?") pendingUpdate.then(reply);
-	else if (event.data?.check)
-		event.waitUntil(refresh(event.data.check).then(reply));
+	else if (event.data === "check") event.waitUntil(refresh().then(reply));
 });

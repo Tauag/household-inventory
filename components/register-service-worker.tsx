@@ -82,7 +82,5 @@ export function RegisterServiceWorker() {
 function checkForUpdate(lastCheck: { current: number }) {
 	if (Date.now() - lastCheck.current < CHECK_INTERVAL_MS) return;
 	lastCheck.current = Date.now();
-	navigator.serviceWorker?.controller?.postMessage({
-		check: location.pathname,
-	});
+	navigator.serviceWorker?.controller?.postMessage("check");
 }
