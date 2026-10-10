@@ -7,6 +7,8 @@ const SHELL_ASSETS = [
 // The signed-in pages. They read no cookies, so one cached copy fits every
 // user, and serving it skips Netlify's cold function on launch.
 const PAGES = ["/", "/low", "/scan"];
+// Cache entry listing the old build's chunks, to delete on the next page load.
+const STALE = "/__stale-chunks";
 // Dev rebuilds chunks under the same URLs, so caching them there serves stale code.
 const DEV = location.hostname === "localhost";
 
@@ -74,8 +76,13 @@ async function servePage(event, pathname) {
 
 	const network = fetch(event.request);
 	// Registered before the page reads the body, so the clone comes first.
+	// Prune only once the network answers: offline, the cached page still needs
+	// its chunks. store() waits so it cannot lose a marker it just wrote.
 	const update = network
-		.then((res) => store(cache, pathname, res.clone(), cachedHtml))
+		.then(async (res) => {
+			if (res.ok) await pruneStale(cache);
+			return store(cache, pathname, res.clone(), cachedHtml);
+		})
 		.catch(() => false);
 	event.waitUntil(update);
 
@@ -92,24 +99,34 @@ async function store(cache, pathname, res, cachedHtml) {
 	const html = await res.clone().text();
 	const changed = cachedHtml !== undefined && (await cachedHtml) !== html;
 	if (changed) {
-		// Keep one build at a time. The old chunks are gone from Netlify anyway,
-		// and the other cached pages still point at them, so drop those too.
-		// lazy: each dropped page loads from the network once per deploy.
-		const keys = await cache.keys();
+		// Drop the other cached pages: they point at the old build.
+		const keys = (await cache.keys()).map((req) => new URL(req.url).pathname);
 		await Promise.all(
 			keys
-				.filter((req) => {
-					const path = new URL(req.url).pathname;
-					return (
-						path.startsWith("/_next/static/") ||
-						(PAGES.includes(path) && path !== pathname)
-					);
-				})
-				.map((req) => cache.delete(req)),
+				.filter((path) => PAGES.includes(path) && path !== pathname)
+				.map((path) => cache.delete(path)),
 		);
+		// The old page is still open and may request old chunks, so only mark
+		// them. The next page load deletes them (see pruneStale).
+		const marked = await cache.match(STALE);
+		const stale = new Set(marked ? await marked.json() : []);
+		for (const path of keys) {
+			if (path.startsWith("/_next/static/")) stale.add(path);
+		}
+		// Not Response.json(): iOS 16 lacks it, and a throw here skips caching the page.
+		await cache.put(STALE, new Response(JSON.stringify([...stale])));
 	}
 	await cache.put(pathname, res);
 	return changed;
+}
+
+// Runs on a page load, after the old-build page is gone.
+async function pruneStale(cache) {
+	const marked = await cache.match(STALE);
+	if (!marked) return;
+	// A corrupt marker (eviction mid-write) must not block caching the page.
+	const stale = await marked.json().catch(() => []);
+	await Promise.all([STALE, ...stale].map((path) => cache.delete(path)));
 }
 
 // Find a deploy that landed while the app was open. All pages share one build,
