@@ -10,7 +10,11 @@ export async function signInWithGoogle() {
 
 	const { data, error } = await supabase.auth.signInWithOAuth({
 		provider: "google",
-		options: { redirectTo: `${origin}/auth/callback` },
+		options: {
+			redirectTo: `${origin}/auth/callback`,
+			// Google otherwise silently reuses its own session after app sign-out.
+			queryParams: { prompt: "select_account" },
+		},
 	});
 
 	if (error || !data.url) {
